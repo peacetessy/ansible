@@ -1,0 +1,121 @@
+---
+- name: Configurer les switches pour l'authentification avec Cisco ISE
+  hosts: access_switches
+  gather_facts: no
+  vars_files:
+    - ../ansible_files/group_vars/get_access_switches.yml # Variables globales pour tous les switches du groupe
+    - ../ansible_files/host_vars/{{ inventory_hostname }}.yml # Variables spécifiques à chaque switch
+  tasks:
+    - name: Activer le serveur HTTP et HTTPS
+      ios_config:
+        lines:
+          - ip http server
+          - ip http secure-server
+
+    - name: Configurer un utilisateur local pour les tests
+      ansible.netcommon.cli_config:
+        config: |
+          username {{ radius_user }} password 0 {{ radius_password }}
+
+    - name: Configurer AAA et l'authentification RADIUS
+      ios_config:
+        lines:
+          - aaa new-model
+          - aaa authentication dot1x default group {{ aaa_group }}
+          - aaa authorization network default group {{ aaa_group }}
+          - aaa authorization auth-proxy default group {{ aaa_group }}
+          - aaa accounting dot1x default start-stop group {{ aaa_group }}
+          - aaa session-id common
+          - aaa accounting update periodic {{ update_period }}
+          - aaa accounting system default start-stop group {{ aaa_group }}
+
+    - name: Configurer les serveurs RADIUS
+      ios_config:
+        lines:
+          - radius server {{ item.name }}
+          - address ipv4 {{ item.ip }} auth-port 1812 acct-port 1813
+          - key {{ item.key }}
+          - automate-tester username {{ radius_user }}
+      loop: "{{ ise_servers }}"
+
+    - name: Configurer AAA Server Radius Dynamic-Author
+      ios_config:
+        lines:
+          - aaa server radius dynamic-author
+          - client {{ item.ip }} server-key {{ item.key }}
+      loop: "{{ radius_servers }}"
+
+    - name: Activer les attributs RADIUS
+      ios_config:
+        lines:
+          - radius-server vsa send accounting
+          - radius-server vsa send authentication
+          - radius-server attribute 6 on-for-login-auth
+          - radius-server attribute 8 include-in-access-req
+          - radius-server attribute 25 access-request include
+
+    - name: Configurer les interfaces source pour RADIUS et SNMP
+      ios_config:
+        lines:
+          - ip radius source-interface {{ source_interface }}
+          - snmp-server trap-source {{ source_interface }}
+          - snmp-server source-interface informs {{ source_interface }}
+
+    - name: Activer 802.1X et le suivi des appareils
+      ios_config:
+        lines:
+          - dot1x system-auth-control
+          - ip device tracking
+          - ip device tracking probe auto-source
+          - ip device tracking probe delay 10
+          - device-sensor accounting
+          - device-sensor notify all-changes
+          - dot1x critical eapol
+
+    - name: Configurer les ACLs
+      ios_config:
+        lines:
+          - ip access-list extended ACL-ALLOW
+          - permit ip any any
+          - ip access-list extended ACL-DEFAULT
+          - remark DHCP
+          - permit udp any eq bootpc any eq bootps
+          - remark DNS
+          - permit udp any any eq domain
+          - remark Ping
+          - permit icmp any any
+          - remark PXE / TFTP
+          - permit udp any any eq tftp
+          - remark Drop all the rest
+          - deny ip any any log
+          - ip access-list extended ACL-WEBAUTH-REDIRECT
+          - remark explicitly deny DNS from being redirected
+          - deny udp any any eq 53
+          - remark redirect all applicable traffic to the ISE Server
+          - permit tcp any any eq 80
+          - permit tcp any any eq 443
+
+    - name: Configurer les interfaces d'accès
+      ios_config:
+        parents: "interface {{ item }}"
+        lines:
+          - spanning-tree portfast
+          - spanning-tree bpduguard enable
+          - authentication priority dot1x mab
+          - authentication event fail action next-method
+          - authentication event server dead action authorize vlan {{ vlan_dead }}
+          - authentication event server dead action authorize voice
+          - authentication event server alive action reinitialize
+          - authentication event server dead action reinitialize vlan {{ vlan_alive }}
+          - authentication host-mode multi-auth
+          - authentication violation restrict
+          - mab
+          - dot1x pae authenticator
+          - dot1x timeout tx-period 10
+          - ip access-group ACL-ALLOW in
+          - authentication port-control auto
+      loop: "{{ access_interfaces }}"
+
+
+
+   

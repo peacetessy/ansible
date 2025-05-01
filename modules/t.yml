@@ -1,0 +1,82 @@
+
+    # ================================================================================
+    # Switch Configuration File
+    # ================================================================================
+    # This configuration file is used to define switch settings and AAA configurations.
+    # Follow the instructions in each section to fill out the required fields.
+    # If you need to add more switches or servers, copy and paste the relevant block.
+    # ================================================================================
+    # Notes:
+    # - Fields left empty ("") must be filled with appropriate values.
+    # - Examples are provided in comments to guide you.
+    # ================================================================================
+
+    # ------------------------------------------------------------------------------
+    # SWITCHES CONFIGURATION
+    # ------------------------------------------------------------------------------
+    # Define the list of switches to configure.
+    # Each switch must have:
+    # - A unique hostname (e.g., "Switch_A").
+    # - A management IP address (e.g., "192.168.1.10").
+    # To add more switches, copy and paste the block below and modify the values.
+    # ------------------------------------------------------------------------------
+    switches:
+      - hostname: ""              # Example: "Switch_A"
+        management_ip: ""         # Example: "192.168.1.10"
+
+      - hostname: ""              # Example: "Switch_B"
+        management_ip: ""         # Example: "192.168.1.11"
+
+    # ------------------------------------------------------------------------------
+    # AAA CONFIGURATION
+    # ------------------------------------------------------------------------------
+    # Define the AAA server group name used for RADIUS authentication.
+    # ------------------------------------------------------------------------------
+    aaa_group_name: ""            # Example: "ISE_GROUP"
+
+    # ------------------------------------------------------------------------------
+    # ISE/RADIUS SERVERS CONFIGURATION
+    # ------------------------------------------------------------------------------
+    # Define the list of ISE or RADIUS servers used for authentication.
+    # Each server must have:
+    # - A unique name (e.g., "ISE_Server_1").
+    # - An IP address (e.g., "192.168.100.10").
+    # To add more servers, copy and paste the block below and modify the values.
+    # ------------------------------------------------------------------------------
+    ise_servers:
+      - name: ""                  # Example: "ISE_Server_1"
+        ip: ""                    # Example: "192.168.100.10"
+
+    # ------------------------------------------------------------------------------
+    # RADIUS TEST USERNAME
+    # ------------------------------------------------------------------------------
+    # Define the username used for testing RADIUS authentication.
+    # This is typically a test account configured on the RADIUS server.
+    # ------------------------------------------------------------------------------
+    radius_test_username: ""      # Example: "radius-tester"
+
+    # ------------------------------------------------------------------------------
+    # ACCOUNTING CONFIGURATION
+    # ------------------------------------------------------------------------------
+    # Define the frequency of RADIUS accounting updates (in minutes).
+    # ------------------------------------------------------------------------------
+    accounting_update_period: ""  # Example: 10
+
+    # ------------------------------------------------------------------------------
+    # SOURCE INTERFACE CONFIGURATION
+    # ------------------------------------------------------------------------------
+    # Define the interface used as the source for RADIUS and SNMP traffic.
+    # Specify the interface name (e.g., "GigabitEthernet1/0/48").
+    # ------------------------------------------------------------------------------
+    source_interface: ""          # Example: "GigabitEthernet1/0/48"
+
+    # ------------------------------------------------------------------------------
+    # VLAN CONFIGURATION
+    # ------------------------------------------------------------------------------
+    # Define the VLAN IDs for RADIUS dead and alive states.
+    # - `radius_dead_vlan`: VLAN ID to assign when the RADIUS server is not reachable.
+    # - `radius_alive_vlan`: VLAN ID to assign when the RADIUS server becomes reachable again.
+    # ------------------------------------------------------------------------------
+    radius_dead_vlan: ""          # Example: 999
+    radius_alive_vlan: ""         # Example: 10
+    

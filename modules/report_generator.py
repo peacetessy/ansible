@@ -1,0 +1,57 @@
+from fpdf import FPDF
+import os
+from datetime import datetime
+from colorama import Fore
+from colorama import Fore, Style, init
+
+# Initialize colorama
+init(autoreset=True)
+
+def generate_report_pdf(playbook_results):
+    """
+    Generates a detailed report in PDF format based on the results of Ansible playbooks.
+    :param playbook_results: A dictionary containing the results of the playbooks.
+    """
+    print("[INFO] Generating detailed PDF report...")
+
+    # Create a PDF object
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    # Add title
+    pdf.set_font("Arial", style="B", size=16)
+    pdf.cell(200, 10, txt="Ansible Playbook Report", ln=True, align="C")
+    pdf.ln(10)
+
+    # Add date
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
+    pdf.ln(10)
+
+    # Add playbook results
+    for playbook_name, results in playbook_results.items():
+        pdf.set_font("Arial", style="B", size=14)
+        pdf.cell(200, 10, txt=f"Playbook: {playbook_name}", ln=True)
+        pdf.ln(5)
+
+        for switch, tasks in results.items():
+            pdf.set_font("Arial", style="B", size=12)
+            pdf.cell(200, 10, txt=f"  Switch: {switch}", ln=True)
+            pdf.ln(5)
+
+            for task in tasks:
+                pdf.set_font("Arial", size=12)
+                pdf.cell(200, 10, txt=f"    Task: {task['task_name']}", ln=True)
+                pdf.cell(200, 10, txt=f"      Status: {task['status']}", ln=True)
+                pdf.cell(200, 10, txt=f"      Message: {task.get('message', 'No additional details.')}", ln=True)
+                pdf.ln(5)
+
+    # Save the PDF to a file
+    reports_dir = "reports"
+    os.makedirs(reports_dir, exist_ok=True)
+    report_file = os.path.join(reports_dir, f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
+    pdf.output(report_file)
+
+    print(fore.GREEN + f"\n[OK] Detailed PDF report generated successfully: {report_file}")
