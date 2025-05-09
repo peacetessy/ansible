@@ -1,11 +1,3 @@
-from fpdf import FPDF
-import os
-from datetime import datetime
-from colorama import Fore, Style, init
-
-# Initialize colorama
-init(autoreset=True)
-
 def generate_report_pdf(playbook_results):
     """
     Generates a detailed report in PDF format based on the results of Ansible playbooks.
@@ -41,6 +33,13 @@ def generate_report_pdf(playbook_results):
         pdf.ln(5)
 
         for switch, tasks in results.items():
+            # Ignore unexpected keys that are not valid switches
+            if not isinstance(tasks, list):
+                pdf.set_font("Arial", size=12)
+                pdf.multi_cell(200, 10, txt=f"[ERROR] Unexpected task format : {switch}")
+                pdf.ln(5)
+                continue
+
             pdf.set_font("Arial", style="B", size=12)
             pdf.cell(200, 10, txt=f"  Switch: {switch}", ln=True)
             pdf.ln(5)
@@ -67,14 +66,14 @@ def generate_report_pdf(playbook_results):
                     pdf.set_font("Arial", size=12)
                     pdf.cell(200, 10, txt=f"    Task: {task['task_name']}", ln=True)
                     pdf.cell(200, 10, txt=f"      Status: {status}", ln=True)
-                    pdf.cell(200, 10, txt=f"      Message: {task.get('message', 'No additional details.')}", ln=True)
+                    pdf.multi_cell(200, 10, txt=f"      Message: {task.get('message', 'No additional details.')}")
                     pdf.ln(5)
 
                     # Reset text color to black
                     pdf.set_text_color(0, 0, 0)
                 else:
                     pdf.set_font("Arial", size=12)
-                    pdf.cell(200, 10, txt=f"    [ERROR] Unexpected task format : {task}", ln=True)
+                    pdf.multi_cell(200, 10, txt=f"    [ERROR] Unexpected task format : {task}")
                     pdf.ln(5)
 
     # Add summary at the end of the report
