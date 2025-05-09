@@ -263,6 +263,9 @@ def apply_with_ansible():
             )
             stdout_text = completed_process.stdout
 
+	    # Display the raw output in the terminal
+            print(stdout_text)
+
             # Parse raw output
             playbook_results[playbook] = parse_ansible_output_raw(stdout_text)
 
