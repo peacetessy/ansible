@@ -249,6 +249,18 @@ def apply_with_ansible():
             continue
 
         try:
+	    subprocess.run(
+                [
+                    "ansible-playbook",
+                    "-i", inventory_path,
+                    playbook_path
+                ],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+		
             # Execute the playbook and capture raw output
             completed_process = subprocess.run(
                 [
@@ -261,9 +273,6 @@ def apply_with_ansible():
                 stderr=subprocess.PIPE,
                 text=True
             )
-
-	    # Display the raw output in the terminal
-            print(completed_process)
 		
             stdout_text = completed_process.stdout
 
