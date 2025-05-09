@@ -249,7 +249,8 @@ def apply_with_ansible():
             continue
 
         try:
-	    subprocess.run(
+            # Execute the playbook and capture raw output
+            subprocess.run(
                 [
                     "ansible-playbook",
                     "-i", inventory_path,
