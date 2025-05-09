@@ -146,7 +146,7 @@ def validate_config_file(config_path):
         required_fields = [
             'switches', 'aaa_group_name', 'ise_servers',
             'radius_test_username', 'accounting_update_period',
-            'source_interface', 'radius_dead_vlan', 'radius_alive_vlan'
+            'source_interface', 'radius_dead_vlan'
         ]
 
         # Check for missing fields
@@ -187,8 +187,6 @@ def validate_config_file(config_path):
         # Validate VLANs
         if "radius_dead_vlan" in config and not is_valid_vlan(config["radius_dead_vlan"]):
             errors.append("'radius_dead_vlan' must be a valid VLAN ID (1-4094).")
-        if "radius_alive_vlan" in config and not is_valid_vlan(config["radius_alive_vlan"]):
-            errors.append("'radius_alive_vlan' must be a valid VLAN ID (1-4094).")
 
         # Validate accounting update period
         if "accounting_update_period" in config and not is_valid_update_period(config["accounting_update_period"]):
