@@ -248,7 +248,24 @@ def apply_with_ansible():
             print(Fore.RED + f"\n[ERROR] Playbook not found: {playbook_path}.")
             continue
 
-        
+        try:
+            # Execute the playbook and capture raw output
+            completed_process = subprocess.run(
+                [
+                    "ansible-playbook",
+                    "-i", inventory_path,
+                    playbook_path
+                ],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            stdout_text = completed_process.stdout
+
+            # Parse raw output
+            playbook_results[playbook] = parse_ansible_output_raw(stdout_text)
+
         except subprocess.CalledProcessError as e:
             print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
             playbook_results[playbook] = {
