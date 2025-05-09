@@ -1,3 +1,12 @@
+from fpdf import FPDF
+import os
+from datetime import datetime
+from colorama import Fore, Style, init
+
+# Initialize colorama
+init(autoreset=True)
+
+
 def generate_report_pdf(playbook_results):
     """
     Generates a detailed report in PDF format based on the results of Ansible playbooks.
