@@ -62,21 +62,20 @@ def validate_switches_and_servers(config, secrets):
 
     # Check if global SSH credentials are used
     has_global_ssh = "global_ssh_credentials" in secrets and secrets["global_ssh_credentials"]
-    has_per_switch_ssh = "per_switch_ssh_credentials" in secrets and secrets["per_switch_ssh_credentials"]
+    has_per_switch = "per_switch_credentials" in secrets and secrets["per_switch_credentials"]
 
-    # Validate switches only if per_switch_ssh_credentials is used
-    if has_per_switch_ssh:
-        per_switch_ssh = secrets.get("per_switch_ssh_credentials", [])
+    # Validate switches only if per_switch_credentials is used
+    if has_per_switch:
+        per_switch = secrets.get("per_switch_credentials", [])
         for i, switch in enumerate(per_switch_ssh):
             if not switch.get("hostname") or switch["hostname"].strip() == "":
-                errors.append(f"#Switch {i + 1} in 'per_switch_ssh_credentials' is missing or has an empty 'hostname'.")
+                errors.append(f"#Switch {i + 1} in 'per_switch_credentials' is missing or has an empty 'hostname'.")
             if not switch.get("username") or switch["username"].strip() == "":
-                errors.append(f"#Switch {i + 1} in 'per_switch_ssh_credentials' is missing or has an empty 'username'.")
-            if not switch.get("password") or switch["password"].strip() == "":
-                errors.append(f"#Switch {i + 1} in 'per_switch_ssh_credentials' is missing or has an empty 'password'.")
+                errors.append(f"#Switch {i + 1} in 'per_switch_credentials' is missing or has an empty 'username'.")
+            if not switch.get("ssh_password") or switch["ssh_password"].strip() == "":
+                errors.append(f"#Switch {i + 1} in 'per_switch_credentials' is missing or has an empty 'password'.")
 
-
-    # Stop validation if there are errors in per_switch_ssh_credentials
+        # Stop validation if there are errors in per_switch_credentials
         if errors:
             print(Fore.RED + "\n[ERROR] Validation failed with the following issues:")
             for error in errors:
@@ -85,7 +84,7 @@ def validate_switches_and_servers(config, secrets):
 
         # Create sets for comparison
         config_switches = {(switch["hostname"]) for switch in config.get("switches", [])}
-        secrets_switches = {(switch["hostname"]) for switch in per_switch_ssh}
+        secrets_switches = {(switch["hostname"]) for switch in per_switch}
 
         if config_switches != secrets_switches:
             missing_in_secrets = config_switches - secrets_switches
@@ -97,8 +96,8 @@ def validate_switches_and_servers(config, secrets):
                 errors.append(f"The following switches are extra in the secrets file: {', '.join([f'{host}' for host in missing_in_config])}")
 
     elif not has_global_ssh:
-        # If neither global_ssh_credentials nor per_switch_ssh_credentials is defined, it's an error
-        errors.append("Neither 'global_ssh_credentials' nor 'per_switch_ssh_credentials' is defined in the secrets file.")
+        # If neither global_ssh_credentials nor per_switch_credentials is defined, it's an error
+        errors.append("Neither 'global_ssh_credentials' nor 'per_switch_credentials' is defined in the secrets file.")
 
     # Validate ISE servers
     config_servers = {server["name"] for server in config.get("ise_servers", [])}
@@ -241,10 +240,10 @@ def validate_secrets_file_ssh(secrets_path):
 
         # Check if both SSH blocks are filled
         has_global_ssh = "global_ssh_credentials" in secrets and secrets["global_ssh_credentials"]
-        has_per_switch_ssh = "per_switch_ssh_credentials" in secrets and secrets["per_switch_ssh_credentials"]
+        has_per_switch = "per_switch_credentials" in secrets and secrets["per_switch_credentials"]
 
-        if has_global_ssh and has_per_switch_ssh:
-            errors.append("Both 'global_ssh_credentials' and 'per_switch_ssh_credentials' are defined.")
+        if has_global_ssh and has_per_switch:
+            errors.append("Both 'global_ssh_credentials' and 'per_switch_credentials' are defined.")
             errors.append("Please choose only one method for SSH authentication.")
 
         # Validate global_ssh_credentials
@@ -255,19 +254,27 @@ def validate_secrets_file_ssh(secrets_path):
             if not global_ssh.get("password"):
                 errors.append("'global_ssh_credentials' is missing 'password'.")
 
-        # Validate per_switch_ssh_credentials
-        if has_per_switch_ssh:
-            per_switch_ssh = secrets["per_switch_ssh_credentials"]
-            if not isinstance(per_switch_ssh, list) or len(per_switch_ssh) == 0:
-                errors.append("'per_switch_ssh_credentials' must be a non-empty list.")
+        # Validate per_switch__credentials
+        if has_per_switch:
+            per_switch = secrets["per_switch_credentials"]
+            if not isinstance(per_switch, list) or len(per_switch) == 0:
+                errors.append("'per_switch_credentials' must be a non-empty list.")
             else:
-                for i, switch_cred in enumerate(per_switch_ssh):
+                for i, switch_cred in enumerate(per_switch):
                     if not switch_cred.get("hostname"):
-                        errors.append(f"Switch #{i + 1} in 'per_switch_ssh_credentials' is missing 'hostname'.")
+                        errors.append(f"Switch #{i + 1} in 'per_switch_credentials' is missing 'hostname'.")
                     if not switch_cred.get("username"):
-                        errors.append(f"Switch #{i + 1} in 'per_switch_ssh_credentials' is missing 'username'.")
+                        errors.append(f"Switch #{i + 1} in 'per_switch_credentials' is missing 'username'.")
                     if not switch_cred.get("password"):
-                        errors.append(f"Switch #{i + 1} in 'per_switch_ssh_credentials' is missing 'password'.")
+                        errors.append(f"Switch #{i + 1} in 'per_switch_credentials' is missing 'password'.")
+
+        # Checks for the existence of enable passwords
+        has_global_enable = secrets.get("global_enable_password")
+
+
+        # Validate global_enable_password
+        if not has_global_enable:
+            errors.append("'global_enable_password' is missing'.")
 
         # Check radius_test_password
         if "radius_test_password" not in secrets or not secrets["radius_test_password"]:

@@ -1,7 +1,6 @@
 from fpdf import FPDF
 import os
 from datetime import datetime
-from colorama import Fore
 from colorama import Fore, Style, init
 
 # Initialize colorama
@@ -42,16 +41,20 @@ def generate_report_pdf(playbook_results):
             pdf.ln(5)
 
             for task in tasks:
-                pdf.set_font("Arial", size=12)
-                pdf.cell(200, 10, txt=f"    Task: {task['task_name']}", ln=True)
-                pdf.cell(200, 10, txt=f"      Status: {task['status']}", ln=True)
-                pdf.cell(200, 10, txt=f"      Message: {task.get('message', 'No additional details.')}", ln=True)
-                pdf.ln(5)
-
+                if isinstance(task, dict) and 'task_name' in task :
+                    pdf.set_font("Arial", size=12)
+                    pdf.cell(200, 10, txt=f"    Task: {task['task_name']}", ln=True)
+                    pdf.cell(200, 10, txt=f"      Status: {task['status']}", ln=True)
+                    pdf.cell(200, 10, txt=f"      Message: {task.get('message', 'No additional details.')}", ln=True)
+                    pdf.ln(5)
+                else:
+                    pdf.set_font("Arial", size=12)
+                    pdf.cell(200, 10, txt=f"    [ERROR] Unexpected task format : {task}", ln=True) 
+                    pdf.ln(5)
     # Save the PDF to a file
     reports_dir = "reports"
     os.makedirs(reports_dir, exist_ok=True)
     report_file = os.path.join(reports_dir, f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
     pdf.output(report_file)
 
-    print(fore.GREEN + f"\n[OK] Detailed PDF report generated successfully: {report_file}")
+    print(Fore.GREEN + f"\n[OK] Detailed PDF report generated successfully: {report_file}")

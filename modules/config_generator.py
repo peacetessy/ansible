@@ -131,21 +131,27 @@ def generate_config_template():
     # - SSH: Uncomment and fill either "global_ssh_credentials" or "per_switch_ssh_credentials".
     # - TACACS+: Uncomment and fill the "tacacs_credentials" block.
     # ------------------------------------------------------------------------------
+ 
     # Global SSH credentials (shared by all switches):
     # Uncomment this block if all switches use the same SSH credentials.
     #global_ssh_credentials:
     #  username: ""              # Example: "admin"
     #  password: ""              # Example: "GlobalSecurePassword"
 
-    # Per-switch SSH credentials (specific to each switch):
-    # Uncomment this block if each switch has its own SSH credentials.
-    #per_switch_ssh_credentials:
+    # Global enable password (used for all switches if the same):
+    #global_enable_password: ""         # Example: "GlobalEnablePassword"
+
+    # Per-switch credentials (specific to each switch):
+    # Uncomment this block if each switch has its own credentials.
+    #per_switch_credentials:
     #  - hostname: ""            # Example: "Switch_A"
     #    username: ""            # Example: "admin"
-    #    password: ""            # Example: "PasswordA"
+    #    ssh_password: ""        # Example: "PasswordA"
+    #    enable_password:        # Example: "EnablePasswordA"
     #  - hostname: ""            # Example: "Switch_B"
     #    username: ""            # Example: "admin"
-    #    password: ""            # Example: "PasswordB"
+    #    ssh_password: ""        # Example: "PasswordB"
+    #    enable_password:        # Example: "EnablePasswordB"
 
     # TACACS+ credentials:
     # Uncomment this block if switches use TACACS+ for authentication.
@@ -233,13 +239,13 @@ def generate_config_files():
         yaml_path = config_path
         with open(yaml_path, 'w') as yaml_file:
             yaml_file.write(yaml_template)
-        print(Fore.GREEN + f"[OK] YAML configuration file saved at: {yaml_path}")
+        print(Fore.GREEN + f"\n[OK] YAML configuration file saved at: {yaml_path}")
 
         # Save the sensitive data file
         secret_path = config_path.replace(".yml", "_secrets.yml")
         with open(secret_path, 'w') as secret_file:
             secret_file.write(secret_template)
-        print(Fore.GREEN + f"[OK] Sensitive data file saved at: {secret_path}")
+        print(Fore.GREEN + f"\n[OK] Sensitive data file saved at: {secret_path}")
 
     else:
-        print(Fore.YELLOW + "[WARN] File saving cancelled.")
+        print(Fore.YELLOW + "\n[WARN] File saving cancelled.")

@@ -1,9 +1,9 @@
-from modules.config_validator import validate_config_file, validate_secrets_file_ssh, validate_secrets_file_tacacs_plus, validate_switches_and_servers
+from modules.config_validator import validate_config_file,validate_secrets_file_ssh, validate_secrets_file_tacacs_plus, validate_switches_and_servers 
 from modules.connectivity_checker import check_connectivity
-from modules.ansible_manager import execute_full_process
-from tkinter import filedialog, Tk
-from colorama import Fore, Style, init
-import getpass
+from modules.ansible_manager import execute_full_process 
+from tkinter import filedialog, Tk 
+from colorama import Fore, Style, init 
+import getpass 
 import subprocess
 
 # Initialize colorama
@@ -120,10 +120,7 @@ def apply_configurations_to_switches():
     # Step 2: Test connectivity
     if not check_connectivity(config_path, secrets_path):
         print(Fore.RED + "\n[ERROR] Connectivity test failed.")
-        # Step 3: Apply configurations
-        execute_full_process(config_path, secrets_path)
         return
 
-    # Step 3: Apply configurations
-    #execute_full_process(config_path, secrets_path)
-    
+    # Step 3. Apply configurations
+    execute_full_process(config_path, secrets_path)    

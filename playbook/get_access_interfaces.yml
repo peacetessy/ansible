@@ -1,9 +1,10 @@
 ---
-- name: ADD TERMINAL CONNECTED INTERFACES
-  hosts: acccess_switches
-  gather_facts: no
+- name: ADD END DEVICE CONNECTED INTERFACES
+  hosts: switches
+  gather_facts: false
+
   vars:
-    output_file: "../ansible_files/host_vars/{{ inventory_hostname }}.yml"  # Path to the existing YAML file
+    output_file: "ansible_files/host_vars/{{ inventory_hostname }}.yml"  # Path to the existing YAML file
 
   tasks:
     - name: RETRIEVE ALL INTERFACES FROM EACH SWITCH
@@ -19,8 +20,8 @@
       when: "'trunk' not in item and item.split()[2] | string"
 
     - name: ADD SPECIFIC INTERFACES TO EACH SWITCH'S VARIABLE FILE
-      lineinfile:
+      lineinfile:      
         path: "{{ output_file }}"
-        line: "access_interfaces: {{ access_interfaces }}"
+        line: "access_interfaces: {{ access_interfaces | reject('equalto', 'Port')|list }}"
         create: yes
         insertafter: EOF

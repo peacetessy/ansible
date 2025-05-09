@@ -1,7 +1,7 @@
 import re
 import getpass
 import subprocess
-
+import tempfile
 import os
 import yaml
 import json
@@ -14,7 +14,7 @@ init(autoreset=True)
 output_dir = "ansible_files"  # Directory where Ansible files will be generated
 
 # Global variable to store the Vault password
-vault_password_global = None
+inventory_path = os.path.join(output_dir, "inventory.ini")
 
 
 def generate_ansible_files(config_path, secrets_path):
@@ -35,16 +35,14 @@ def generate_ansible_files(config_path, secrets_path):
         os.makedirs(os.path.join(output_dir, "group_vars"), exist_ok=True)
 
         # Generate inventory.ini
-        inventory_path = os.path.join(output_dir, "inventory.ini")
         with open(inventory_path, 'w') as inventory_file:
             inventory_file.write("[switches]\n")
             for switch in config.get("switches", []):
                 inventory_file.write(f"{switch['hostname']} ansible_host={switch['management_ip']}\n")
-
-import tempfile        #print(Fore.GREEN + f"[OK] Inventory file generated: {inventory_path}")
+	#print(Fore.GREEN + f"[OK] Inventory file generated: {inventory_path}")
 
         # Generate group_vars/data.yml
-        group_vars_path = os.path.join(output_dir, "group_vars", "data.yml")
+        group_vars_path = os.path.join(output_dir, "group_vars", "switches.yml")
         ise_servers = config.get("ise_servers", [])
         radius_secrets = secrets.get("radius_secrets", [])
 
@@ -84,29 +82,33 @@ import tempfile        #print(Fore.GREEN + f"[OK] Inventory file generated: {inv
 
             # Check if per_switch_ssh_credentials is used
             per_switch_creds = next(
-                (cred for cred in secrets.get("per_switch_ssh_credentials", []) if cred["hostname"] == hostname), None
+                (cred for cred in secrets.get("per_switch_credentials", []) if cred["hostname"] == hostname), None
             )
 
             if per_switch_creds:
                 # Use per-switch credentials
                 host_vars = {
                     "ansible_user": per_switch_creds["username"],
-                    "ansible_password": per_switch_creds["password"],
+                    "ansible_password": per_switch_creds["ssh_password"],
                     "ansible_network_os": "cisco.ios.ios",
                     "ansible_connection": "network_cli",
+                    "ansible_command_timeout": 600,
                     "ansible_become": True,
-                    "ansible_become_method": "enable"
+                    "ansible_become_method": "enable",
+                    "ansible_become_password": per_switch_creds["enable_passsword"]
                 }
             else:
                 # Use global SSH credentials
                 global_creds = secrets.get("global_ssh_credentials", {})
                 host_vars = {
-                    "ansible_user": global_creds.get("username", "admin"),
-                    "ansible_password": global_creds.get("password", "password"),
+                    "ansible_user": global_creds.get("username"),
+                    "ansible_password": global_creds.get("password"),
                     "ansible_network_os": "cisco.ios.ios",
                     "ansible_connection": "network_cli",
+                    "ansible_command_timeout": 600,
                     "ansible_become": True,
-                    "ansible_become_method": "enable"
+                    "ansible_become_method": "enable",
+                    "ansible_become_password": secrets.get("global_enable_password")
                 }
 
             # Write the host_vars/<hostname>.yml file
@@ -144,6 +146,7 @@ def validate_vault_password(password):
 
 def encrypt_host_vars():
     global vault_password_global
+ 
 
     host_vars_dir = os.path.join(output_dir, "host_vars")
     group_vars_dir = os.path.join(output_dir, "group_vars")
@@ -151,7 +154,7 @@ def encrypt_host_vars():
     if not os.path.exists(host_vars_dir) or not os.path.exists(group_vars_dir):
         return None
 
-    
+ 
     while True:
         vault_password = getpass.getpass(Fore.YELLOW + "\n[INFO] Enter Ansible Vault password: ")
         if not validate_vault_password(vault_password):
@@ -197,74 +200,110 @@ def parse_ansible_output(ansible_output):
     Parses the JSON output from Ansible and constructs playbook_results.
     """
     playbook_results = {}
-    output_data = json.loads(ansible_output)
 
-    for play in output_data["plays"]:
-        playbook_name = play["play"]
+
+    for play in ansible_output.get("plays", []):
+        playbook_name = play.get("play", "Unamed Playbook")
+        if isinstance(playbook_name, dict):
+            playbook_name = playbook_name.get("name", "Unamed Playbook")
         playbook_results[playbook_name] = {}
 
-        for task in play["tasks"]:
-            task_name = task["task"]
-            for host, result in task["hosts"].items():
+        for task in play.get("tasks", []):
+            task_name = task.get("task", "Unamed Task")
+
+            for host, result in task.get("hosts", {}).items():
                 if host not in playbook_results[playbook_name]:
                     playbook_results[playbook_name][host] = []
+
                 playbook_results[playbook_name][host].append({
                     "task_name": task_name,
-                    "status": result["status"],
-                    "message": result.get("msg", "No additional details.")
+                    "status": result.get("status", "Unknown"),
+                    "message": result.get("msg") or result.get("stderr") or "No additional details."
                 })
-
     return playbook_results
 
 
-def apply_with_ansible(vault_path):
+def apply_with_ansible():
     """
     Applies configurations using Ansible.
     :param vault_path: Path to the Ansible Vault password file.
     """
-    inventory_path = os.path.join(output_dir, "inventory.ini")
+
     playbook_dir = os.path.join(os.getcwd(), "playbook")
     playbooks = ["get_access_interfaces.yml", "configure_switches.yml"]
 
+
     if not os.path.exists(inventory_path):
+        print(Fore.RED + "\n[ERROR] Inventory path not found.")
         return
 
     playbook_results = {}
 
     for playbook in playbooks:
-        playbook_path = os.path.join(playbook_dir, playbook)
+        playbook_path = os.path.join(playbook_dir, playbook) 
         if not os.path.exists(playbook_path):
+            print(Fore.RED + f"\n[ERROR] Playbook not found: {playbook_path}.")
             continue
 
-        env = os.environ.copy()
-        env["ANSIBLE_STDOUT_CALLBACK"] = "json"
-
         try:
-            result = subprocess.run(
+            subprocess.run(
                 [
                     "ansible-playbook",
                     "-i", inventory_path,
                     playbook_path,
-                    "--vault-password-file", vault_path
                 ],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                env=env
+                stderr=subprocess.DEVNULL,
+                check=True
             )
-
-            playbook_results = parse_ansible_output(result.stdout.decode())
-
         except subprocess.CalledProcessError as e:
-            print(Fore.RED + f"\n[ERROR] Failed to execute Ansible playbook {playbook}: {e}")
-            playbook_results = None
+            print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
+            playbook_results[playbook] = {"[ERROR]" : str(e)}
+            continue
 
-    # Supprimer le fichier du mot de passe après usage
-    if os.path.exists(vault_path):
-        os.remove(vault_path)
+    #Call encryption
+    vault_path = encrypt_host_vars()
+    if not vault_path:
+        print(Fore.RED + "\n[ERROR] Vault encryption failed. ")
+        return
+
+
+    #Second execution with the json callback and vault if available
+    env = os.environ.copy()
+    env["ANSIBLE_STDOUT_CALLBACK"] = "json"
+
+    try:
+        completed_process = subprocess.run(
+            [
+                "ansible-playbook",
+                "-i", inventory_path,
+                playbook_path,
+                "--vault-password-file", vault_path
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            env=env,
+            text=True
+        )
+        stdout_text = completed_process.stdout
+
+        try:
+            ansible_output = json.loads(stdout_text)
+            playbook_results[playbook] = parse_ansible_output(ansible_output)
+        except json.JSONDecodeError:
+            playbook_results[playbook] = {"RAW_OUTPUT": stdout_text.strip()}
+
+    except subprocess.CalledProcessError as e:
+        playbook_results[playbook] = {
+            "error": str(e),
+            "stderr": e.stderr.decode() if e.stderr else "",
+            "stdout": e.stdout.decode() if e.stdout else ""
+        }
+
+#    if os.path.exists(vault_path):
+#        os.remove(vault_path)
 
     return playbook_results
-
 
 def execute_full_process(config_path, secrets_path):
     """
@@ -276,21 +315,11 @@ def execute_full_process(config_path, secrets_path):
     #print(Fore.YELLOW + "[INFO] Generating Ansible files...")
     generate_ansible_files(config_path, secrets_path)
 
-    temp_vault_path = encrypt_host_vars()
-    if not temp_vault_path:
-        print(Fore.RED + "[ERROR] Failed to encrypt host/group variables.")
-        return
-
-
-    # 3. Apply configurations using Ansible
+    # 2. Apply configurations using Ansible
     print(Fore.YELLOW + "\n[INFO] Applying configurations with Ansible...")
-    playbook_results = apply_with_ansible(temp_vault_path)
-
-    # Supprimer le fichier temporaire contenant le mot de passe
-    os.remove(temp_vault_path)
-
+    playbook_results = apply_with_ansible()
     if not playbook_results:
         print(Fore.RED + "\n[ERROR] Failed to apply configurations with Ansible.")
         return
-
+    print("JSON_output:", playbook_results)
     generate_report_pdf(playbook_results)
