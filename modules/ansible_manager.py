@@ -261,10 +261,11 @@ def apply_with_ansible():
                 stderr=subprocess.PIPE,
                 text=True
             )
-            stdout_text = completed_process.stdout
 
 	    # Display the raw output in the terminal
-            print(stdout_text)
+            print(completed_process)
+		
+            stdout_text = completed_process.stdout
 
             # Parse raw output
             playbook_results[playbook] = parse_ansible_output_raw(stdout_text)
