@@ -39,8 +39,7 @@ def generate_ansible_files(config_path, secrets_path):
             inventory_file.write("[switches]\n")
             for switch in config.get("switches", []):
                 inventory_file.write(f"{switch['hostname']} ansible_host={switch['management_ip']}\n")
-	#print(Fore.GREEN + f"[OK] Inventory file generated: {inventory_path}")
-
+	
         # Generate group_vars/data.yml
         group_vars_path = os.path.join(output_dir, "group_vars", "switches.yml")
         ise_servers = config.get("ise_servers", [])
@@ -59,7 +58,6 @@ def generate_ansible_files(config_path, secrets_path):
             "update_period": config.get("accounting_update_period"),
             "source_interface": config.get("source_interface"),
             "vlan_dead": config.get("radius_dead_vlan"),
-            "vlan_alive": config.get("radius_alive_vlan"),
             "aaa_group": config.get("aaa_group_name"),
             "ise_servers": ise_servers
         }
@@ -73,7 +71,6 @@ def generate_ansible_files(config_path, secrets_path):
                 sort_keys=False,
                 indent=2
             )
-        #print(Fore.GREEN + f"[OK] Group variables file generated: {group_vars_path}")
 
         # Generate host_vars/<hostname>.yml for each switch
         for switch in config.get("switches", []):
@@ -114,7 +111,6 @@ def generate_ansible_files(config_path, secrets_path):
             # Write the host_vars/<hostname>.yml file
             with open(host_vars_path, 'w') as host_vars_file:
                 yaml.dump(host_vars, host_vars_file, default_flow_style=False)
-            #print(Fore.GREEN + f"[OK] Host variables file generated for {hostname}: {host_vars_path}")
 
     except Exception as e:
         print(Fore.RED + f"\n[ERROR] Failed to generate Ansible files: {e}")
@@ -195,33 +191,43 @@ def encrypt_host_vars():
     return temp_path
 
 
-def parse_ansible_output(ansible_output):
+def parse_ansible_output_raw(raw_output):
     """
-    Parses the JSON output from Ansible and constructs playbook_results.
+    Parses raw Ansible output and structures it for reporting.
+    :param raw_output: The raw output string from Ansible.
+    :return: A structured dictionary with playbook results.
     """
     playbook_results = {}
+    current_play = None
+    current_task = None
 
+    for line in raw_output.splitlines():
+        # Detect the start of a play
+        if line.startswith("PLAY ["):
+            current_play = line.split("[")[1].split("]")[0]
+            playbook_results[current_play] = {}
 
-    for play in ansible_output.get("plays", []):
-        playbook_name = play.get("play", "Unamed Playbook")
-        if isinstance(playbook_name, dict):
-            playbook_name = playbook_name.get("name", "Unamed Playbook")
-        playbook_results[playbook_name] = {}
+        # Detect the start of a task
+        elif line.startswith("TASK ["):
+            current_task = line.split("[")[1].split("]")[0]
 
-        for task in play.get("tasks", []):
-            task_name = task.get("task", "Unamed Task")
+        # Detect task results
+        elif line.startswith("ok:") or line.startswith("changed:") or line.startswith("failed:"):
+            parts = line.split(":")
+            host = parts[1].strip()
+            status = parts[0].strip()
+            message = ":".join(parts[2:]).strip() if len(parts) > 2 else "No additional details."
 
-            for host, result in task.get("hosts", {}).items():
-                if host not in playbook_results[playbook_name]:
-                    playbook_results[playbook_name][host] = []
+            if host not in playbook_results[current_play]:
+                playbook_results[current_play][host] = []
 
-                playbook_results[playbook_name][host].append({
-                    "task_name": task_name,
-                    "status": result.get("status", "Unknown"),
-                    "message": result.get("msg") or result.get("stderr") or "No additional details."
-                })
+            playbook_results[current_play][host].append({
+                "task_name": current_task,
+                "status": status,
+                "message": message
+            })
+
     return playbook_results
-
 
 def apply_with_ansible():
     """
@@ -242,61 +248,31 @@ def apply_with_ansible():
             print(Fore.RED + f"\n[ERROR] Playbook not found: {playbook_path}.")
             continue
 
-        # First execution without JSON callback
         try:
-            subprocess.run(
-                [
-                    "ansible-playbook",
-                    "-i", inventory_path,
-                    playbook_path,
-                ],
-                stderr=subprocess.DEVNULL,
-                check=True
-            )
-        except subprocess.CalledProcessError as e:
-            print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
-            playbook_results[playbook] = {"[ERROR]": str(e)}
-            continue
-
-        # Encrypt host_vars and group_vars
-        vault_path = encrypt_host_vars()
-        if not vault_path:
-            print(Fore.RED + "\n[ERROR] Vault encryption failed.")
-            return
-
-        # Second execution with JSON callback
-        env = os.environ.copy()
-        env["ANSIBLE_STDOUT_CALLBACK"] = "json"
-
-        try:
+            # Execute the playbook and capture raw output
             completed_process = subprocess.run(
                 [
                     "ansible-playbook",
                     "-i", inventory_path,
-                    playbook_path,
-                    "--vault-password-file", vault_path
+                    playbook_path
                 ],
                 check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                env=env,
+                stderr=subprocess.PIPE,
                 text=True
             )
             stdout_text = completed_process.stdout
 
-            try:
-                ansible_output = json.loads(stdout_text)
-                playbook_results[playbook] = parse_ansible_output(ansible_output)
-            except json.JSONDecodeError:
-                playbook_results[playbook] = {"RAW_OUTPUT": stdout_text.strip()}
+            # Parse raw output
+            playbook_results[playbook] = parse_ansible_output_raw(stdout_text)
 
         except subprocess.CalledProcessError as e:
+            print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
             playbook_results[playbook] = {
                 "error": str(e),
-                "stderr": e.stderr.decode() if e.stderr else "",
-                "stdout": e.stdout.decode() if e.stdout else ""
+                "stderr": e.stderr.strip() if e.stderr else "",
+                "stdout": e.stdout.strip() if e.stdout else ""
             }
-
     # Return the aggregated results for all playbooks
     return playbook_results
 
@@ -308,7 +284,7 @@ def execute_full_process(config_path, secrets_path):
     :param secrets_path: Path to the secrets file.
     """
     # 1. Generate Ansible files
-    #print(Fore.YELLOW + "[INFO] Generating Ansible files...")
+    print(Fore.YELLOW + "[INFO] Generating Ansible files...")
     generate_ansible_files(config_path, secrets_path)
 
     # 2. Apply configurations using Ansible
@@ -317,5 +293,9 @@ def execute_full_process(config_path, secrets_path):
     if not playbook_results:
         print(Fore.RED + "\n[ERROR] Failed to apply configurations with Ansible.")
         return
-    print("JSON_output:", playbook_results)
+
+    # Print the results for debugging
+    print("Parsed Results:", playbook_results)
+
+    # 3. Generate PDF report
     generate_report_pdf(playbook_results)
