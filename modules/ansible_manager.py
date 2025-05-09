@@ -284,7 +284,6 @@ def execute_full_process(config_path, secrets_path):
     :param secrets_path: Path to the secrets file.
     """
     # 1. Generate Ansible files
-    print(Fore.YELLOW + "[INFO] Generating Ansible files...")
     generate_ansible_files(config_path, secrets_path)
 
     # 2. Apply configurations using Ansible
