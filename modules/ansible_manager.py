@@ -226,12 +226,9 @@ def parse_ansible_output(ansible_output):
 def apply_with_ansible():
     """
     Applies configurations using Ansible.
-    :param vault_path: Path to the Ansible Vault password file.
     """
-
     playbook_dir = os.path.join(os.getcwd(), "playbook")
     playbooks = ["get_access_interfaces.yml", "configure_switches.yml"]
-
 
     if not os.path.exists(inventory_path):
         print(Fore.RED + "\n[ERROR] Inventory path not found.")
@@ -240,11 +237,12 @@ def apply_with_ansible():
     playbook_results = {}
 
     for playbook in playbooks:
-        playbook_path = os.path.join(playbook_dir, playbook) 
+        playbook_path = os.path.join(playbook_dir, playbook)
         if not os.path.exists(playbook_path):
             print(Fore.RED + f"\n[ERROR] Playbook not found: {playbook_path}.")
             continue
 
+        # First execution without JSON callback
         try:
             subprocess.run(
                 [
@@ -257,53 +255,51 @@ def apply_with_ansible():
             )
         except subprocess.CalledProcessError as e:
             print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
-            playbook_results[playbook] = {"[ERROR]" : str(e)}
+            playbook_results[playbook] = {"[ERROR]": str(e)}
             continue
 
-    #Call encryption
-    vault_path = encrypt_host_vars()
-    if not vault_path:
-        print(Fore.RED + "\n[ERROR] Vault encryption failed. ")
-        return
+        # Encrypt host_vars and group_vars
+        vault_path = encrypt_host_vars()
+        if not vault_path:
+            print(Fore.RED + "\n[ERROR] Vault encryption failed.")
+            return
 
-
-    #Second execution with the json callback and vault if available
-    env = os.environ.copy()
-    env["ANSIBLE_STDOUT_CALLBACK"] = "json"
-
-    try:
-        completed_process = subprocess.run(
-            [
-                "ansible-playbook",
-                "-i", inventory_path,
-                playbook_path,
-                "--vault-password-file", vault_path
-            ],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            env=env,
-            text=True
-        )
-        stdout_text = completed_process.stdout
+        # Second execution with JSON callback
+        env = os.environ.copy()
+        env["ANSIBLE_STDOUT_CALLBACK"] = "json"
 
         try:
-            ansible_output = json.loads(stdout_text)
-            playbook_results[playbook] = parse_ansible_output(ansible_output)
-        except json.JSONDecodeError:
-            playbook_results[playbook] = {"RAW_OUTPUT": stdout_text.strip()}
+            completed_process = subprocess.run(
+                [
+                    "ansible-playbook",
+                    "-i", inventory_path,
+                    playbook_path,
+                    "--vault-password-file", vault_path
+                ],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                env=env,
+                text=True
+            )
+            stdout_text = completed_process.stdout
 
-    except subprocess.CalledProcessError as e:
-        playbook_results[playbook] = {
-            "error": str(e),
-            "stderr": e.stderr.decode() if e.stderr else "",
-            "stdout": e.stdout.decode() if e.stdout else ""
-        }
+            try:
+                ansible_output = json.loads(stdout_text)
+                playbook_results[playbook] = parse_ansible_output(ansible_output)
+            except json.JSONDecodeError:
+                playbook_results[playbook] = {"RAW_OUTPUT": stdout_text.strip()}
 
-#    if os.path.exists(vault_path):
-#        os.remove(vault_path)
+        except subprocess.CalledProcessError as e:
+            playbook_results[playbook] = {
+                "error": str(e),
+                "stderr": e.stderr.decode() if e.stderr else "",
+                "stdout": e.stdout.decode() if e.stdout else ""
+            }
 
+    # Return the aggregated results for all playbooks
     return playbook_results
+
 
 def execute_full_process(config_path, secrets_path):
     """
