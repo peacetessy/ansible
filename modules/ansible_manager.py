@@ -186,8 +186,8 @@ def encrypt_host_vars():
                 check=True
             )
     except subprocess.CalledProcessError as e:
-        #print(Fore.RED + f"\n[ERROR] Failed to encrypt {file_path}: {e}")
         return False
+	    
     return temp_path
 
 
@@ -273,6 +273,12 @@ def apply_with_ansible():
                 "stderr": e.stderr.strip() if e.stderr else "",
                 "stdout": e.stdout.strip() if e.stdout else ""
             }
+
+    # Encrypt host_vars and group_vars after playbook execution
+    vault_path = encrypt_host_vars()
+    if not vault_path:
+        print(Fore.RED + "\n[ERROR] Failed to encrypt host_vars and group_vars.")
+	    
     # Return the aggregated results for all playbooks
     return playbook_results
 
