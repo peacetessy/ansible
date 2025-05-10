@@ -1,17 +1,17 @@
 from fpdf import FPDF
 import os
 from datetime import datetime
-from colorama import Fore, Style, init
+from colorama import Fore, init
 
 # Initialize colorama
 init(autoreset=True)
-
 
 def generate_report_pdf(playbook_results):
     """
     Generates a detailed report in PDF format based on the results of Ansible playbooks.
     :param playbook_results: A dictionary containing the results of the playbooks.
     """
+    print("[INFO] Generating detailed PDF report...")
 
     # Create a PDF object
     pdf = FPDF()
@@ -19,38 +19,31 @@ def generate_report_pdf(playbook_results):
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    # Add title
+    # Add report title
     pdf.set_font("Arial", style="B", size=16)
     pdf.cell(200, 10, txt="Ansible Playbook Report", ln=True, align="C")
     pdf.ln(10)
 
-    # Add date
+    # Add generation date
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt=f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
     pdf.ln(10)
 
-    # Initialize counters for the summary
+    # Initialize counters
     total_tasks = 0
     ok_tasks = 0
     failed_tasks = 0
     changed_tasks = 0
 
-    # Add playbook results
+    # Process each playbook
     for playbook_name, results in playbook_results.items():
         pdf.set_font("Arial", style="B", size=14)
         pdf.cell(200, 10, txt=f"Playbook: {playbook_name}", ln=True)
         pdf.ln(5)
 
-        for switch, tasks in results.items():
-            # Ignore unexpected keys that are not valid switches
-            if not isinstance(tasks, list):
-                pdf.set_font("Arial", size=12)
-                pdf.multi_cell(200, 10, txt=f"[ERROR] Unexpected task format : {switch}")
-                pdf.ln(5)
-                continue
-
+        for host, tasks in results.items():
             pdf.set_font("Arial", style="B", size=12)
-            pdf.cell(200, 10, txt=f"  Switch: {switch}", ln=True)
+            pdf.cell(200, 10, txt=f"  Switch: {host}", ln=True)
             pdf.ln(5)
 
             for task in tasks:
@@ -58,7 +51,7 @@ def generate_report_pdf(playbook_results):
                     total_tasks += 1
                     status = task['status']
 
-                    # Update counters based on status
+                    # Update status counters
                     if status == 'ok':
                         ok_tasks += 1
                         pdf.set_text_color(0, 128, 0)  # Green
@@ -75,28 +68,32 @@ def generate_report_pdf(playbook_results):
                     pdf.set_font("Arial", size=12)
                     pdf.cell(200, 10, txt=f"    Task: {task['task_name']}", ln=True)
                     pdf.cell(200, 10, txt=f"      Status: {status}", ln=True)
-                    pdf.multi_cell(200, 10, txt=f"      Message: {task.get('message', 'No additional details.')}")
+                    pdf.cell(200, 10, txt=f"      Message: {task.get('message', 'No additional details.')}", ln=True)
                     pdf.ln(5)
 
-                    # Reset text color to black
+                    # Reset text color
                     pdf.set_text_color(0, 0, 0)
                 else:
+                    # Handle unexpected task format
                     pdf.set_font("Arial", size=12)
-                    pdf.multi_cell(200, 10, txt=f"    [ERROR] Unexpected task format : {task}")
+                    pdf.set_text_color(255, 0, 0)
+                    pdf.cell(200, 10, txt=f"    [ERROR] Unexpected task format: {task}", ln=True)
+                    pdf.set_text_color(0, 0, 0)
                     pdf.ln(5)
 
-    # Add summary at the end of the report
+    # Summary section
     pdf.add_page()
     pdf.set_font("Arial", style="B", size=14)
     pdf.cell(200, 10, txt="Summary", ln=True)
     pdf.ln(5)
+
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt=f"Total Tasks: {total_tasks}", ln=True)
     pdf.cell(200, 10, txt=f"Tasks OK: {ok_tasks}", ln=True)
     pdf.cell(200, 10, txt=f"Tasks Failed: {failed_tasks}", ln=True)
     pdf.cell(200, 10, txt=f"Tasks Changed: {changed_tasks}", ln=True)
 
-    # Save the PDF to a file
+    # Save report file
     reports_dir = "reports"
     os.makedirs(reports_dir, exist_ok=True)
     report_file = os.path.join(reports_dir, f"report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf")
