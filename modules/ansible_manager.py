@@ -248,44 +248,44 @@ def apply_with_ansible():
             print(Fore.RED + f"\n[ERROR] Playbook not found: {playbook_path}.")
             continue
 
-        try:
-            process = subprocess.Popen(
+         try:
+            # Execute the playbook and capture raw output
+            subprocess.run(
                 [
                     "ansible-playbook",
                     "-i", inventory_path,
                     playbook
                 ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
+                check=True,
+                text=True,
+		stderr=subprocess.DEVNULL
             )
 
-            full_output = ""  # Pour capturer la sortie complète
+            # Capturing output for analysis
+            completed_process = subprocess.run(
+                [
+                    "ansible-playbook",
+                    "-i", inventory_path,
+                    playbook
+                ],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            stdout_text = completed_process.stdout
 
-            # Lire la sortie ligne par ligne (afficher et stocker)
-            for line in process.stdout:
-                print(line, end="")  # Affiche en temps réel
-                full_output += line  # Capture pour analyse
-
-            process.wait()  # Attendre la fin du processus
-
-            if process.returncode != 0:
-                raise subprocess.CalledProcessError(
-                    returncode=process.returncode,
-                    cmd=process.args,
-                    output=full_output
-                )
-
-            # Analyser la sortie complète
-            playbook_results[playbook] = parse_ansible_output_raw(full_output)
+            # Parse raw output
+            playbook_results[playbook] = parse_ansible_output_raw(stdout_text)
 
         except subprocess.CalledProcessError as e:
-            print(Fore.RED + f"\n[ERROR] Échec de l'exécution de {playbook} : {e}")
+            print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
             playbook_results[playbook] = {
                 "error": str(e),
-                "stdout": e.output.strip() if e.output else ""
+                "stderr": e.stderr.strip() if e.stderr else "",
+                "stdout": e.stdout.strip() if e.stdout else ""
             }
-
+    # Return the aggregated results for all playbooks
     return playbook_results
 
 def execute_full_process(config_path, secrets_path):
