@@ -197,28 +197,8 @@ def parse_ansible_output_raw(raw_output):
     Parses raw Ansible output and structures it for reporting.
     :param raw_output: The raw output string from Ansible.
     :return: A structured dictionary with playbook results.
-
-    Example Input:
-        PLAY [Configure switches] ************************
-        TASK [ENABLE HTTP] *******************************
-        ok: [ASW1]
-        changed: [ASW1] => (item=Gi1/0)
-
-    Example Output:
-        {
-            "Configure switches": {
-                "ASW1": {
-                    "Gi1/0": [
-                        {
-                            "task_name": "ENABLE HTTP",
-                            "status": "changed",
-                            "message": "No additional details."
-                        }
-                    ]
-                }
-            }
-        }
     """
+    import re
 
     playbook_results = {}
     current_play = None
@@ -241,8 +221,11 @@ def parse_ansible_output_raw(raw_output):
                 status = parts[0].strip()
                 host_info = parts[1].strip()
 
-                # Match pattern like: [ASW1] => (item=Gi1/0)
-                match = re.match(r"\[(.*?)\] => \(item=(.*?)\)", host_info)
+                # Remove brackets from host names like [ASW1]
+                host = re.sub(r"^\[(.*?)\]$", r"\1", host_info)
+
+                # Handle cases with (item=...)
+                match = re.match(r"(.*?) => \(item=(.*?)\)", host_info)
                 if match:
                     host = match.group(1).strip()
                     item = match.group(2).strip()
@@ -257,7 +240,7 @@ def parse_ansible_output_raw(raw_output):
                         "message": message
                     })
                 else:
-                    host = host_info
+                    # Handle regular cases without (item=...)
                     if host not in playbook_results[current_play]:
                         playbook_results[current_play][host] = []
                     message = parts[2].strip() if len(parts) > 2 else "No additional details."
