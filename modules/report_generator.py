@@ -11,8 +11,6 @@ def generate_report_pdf(playbook_results):
     Generates a detailed report in PDF format based on the results of Ansible playbooks.
     :param playbook_results: A dictionary containing the results of the playbooks.
     """
-    print("[INFO] Generating detailed PDF report...")
-
     # Create a PDF object
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
