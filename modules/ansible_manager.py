@@ -218,7 +218,6 @@ def parse_ansible_output_raw(raw_output):
             }
         }
     """
-    import re
 
     playbook_results = {}
     current_play = None
