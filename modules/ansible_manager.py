@@ -249,31 +249,43 @@ def apply_with_ansible():
             continue
 
         try:
-            # Execute the playbook and capture raw output
-            completed_process = subprocess.run(
+            process = subprocess.Popen(
                 [
                     "ansible-playbook",
                     "-i", inventory_path,
-                    playbook_path
+                    playbook
                 ],
-                check=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True
             )
-            stdout_text = completed_process.stdout
 
-            # Parse raw output
-            playbook_results[playbook] = parse_ansible_output_raw(stdout_text)
+            full_output = ""  # Pour capturer la sortie complète
+
+            # Lire la sortie ligne par ligne (afficher et stocker)
+            for line in process.stdout:
+                print(line, end="")  # Affiche en temps réel
+                full_output += line  # Capture pour analyse
+
+            process.wait()  # Attendre la fin du processus
+
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(
+                    returncode=process.returncode,
+                    cmd=process.args,
+                    output=full_output
+                )
+
+            # Analyser la sortie complète
+            playbook_results[playbook] = parse_ansible_output_raw(full_output)
 
         except subprocess.CalledProcessError as e:
-            print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
+            print(Fore.RED + f"\n[ERROR] Échec de l'exécution de {playbook} : {e}")
             playbook_results[playbook] = {
                 "error": str(e),
-                "stderr": e.stderr.strip() if e.stderr else "",
-                "stdout": e.stdout.strip() if e.stdout else ""
+                "stdout": e.output.strip() if e.output else ""
             }
-    # Return the aggregated results for all playbooks
+
     return playbook_results
 
 def execute_full_process(config_path, secrets_path):
