@@ -232,6 +232,7 @@ def parse_ansible_output_raw(raw_output):
 def apply_with_ansible():
     """
     Applies configurations using Ansible.
+    Executes multiple playbooks, displays the output in the terminal, and parses the results.
     """
     playbook_dir = os.path.join(os.getcwd(), "playbook")
     playbooks = ["get_access_interfaces.yml", "configure_switches.yml"]
@@ -248,43 +249,53 @@ def apply_with_ansible():
             print(Fore.RED + f"\n[ERROR] Playbook not found: {playbook_path}.")
             continue
 
-         try:
-            # Execute the playbook and capture raw output
+        try:
+            # First subprocess.run: Display output in the terminal without errors
             subprocess.run(
                 [
                     "ansible-playbook",
                     "-i", inventory_path,
-                    playbook
+                    playbook_path
                 ],
+                stdout=sys.stdout,  # Display stdout in the terminal
+                stderr=subprocess.DEVNULL,  # Suppress stderr
                 check=True,
-                text=True,
-		stderr=subprocess.DEVNULL
+                text=True
             )
 
-            # Capturing output for analysis
+            # Second subprocess.run: Capture output for parsing
             completed_process = subprocess.run(
                 [
                     "ansible-playbook",
                     "-i", inventory_path,
-                    playbook
+                    playbook_path
                 ],
+                stdout=subprocess.PIPE,  # Capture stdout
+                stderr=subprocess.PIPE,  # Capture stderr
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
                 text=True
             )
-            stdout_text = completed_process.stdout
 
             # Parse raw output
+            stdout_text = completed_process.stdout
             playbook_results[playbook] = parse_ansible_output_raw(stdout_text)
 
         except subprocess.CalledProcessError as e:
+            # Handle errors and capture stderr
             print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
             playbook_results[playbook] = {
                 "error": str(e),
                 "stderr": e.stderr.strip() if e.stderr else "",
                 "stdout": e.stdout.strip() if e.stdout else ""
             }
+            continue
+
+    # Call encryption
+    vault_path = encrypt_host_vars()
+    if not vault_path:
+        print(Fore.RED + "\n[ERROR] Vault encryption failed.")
+        return
+
     # Return the aggregated results for all playbooks
     return playbook_results
 
