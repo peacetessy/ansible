@@ -297,7 +297,7 @@ def apply_with_ansible():
                     playbook_path
                 ],
                 stdout=subprocess.PIPE,  # Capture stdout
-                stderr=subprocess.PIPE,  # Capture stderr
+                stderr=subprocess.DEVNULL,  # Capture stderr
                 check=True,
                 text=True
             )
@@ -340,9 +340,6 @@ def execute_full_process(config_path, secrets_path):
     if not playbook_results:
         print(Fore.RED + "\n[ERROR] Failed to apply configurations with Ansible.")
         return
-
-    # Print the results for debugging
-    print("Parsed Results:", playbook_results)
 
     # 3. Generate PDF report
     generate_report_pdf(playbook_results)
