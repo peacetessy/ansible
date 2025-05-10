@@ -11,6 +11,8 @@ def generate_report_pdf(playbook_results):
     Generates a detailed report in PDF format based on the results of Ansible playbooks.
     :param playbook_results: A dictionary containing the results of the playbooks.
     """
+    print("[INFO] Generating detailed PDF report...")
+
     # Create a PDF object
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -51,37 +53,42 @@ def generate_report_pdf(playbook_results):
                     pdf.cell(200, 10, txt=f"    Sub-Key: {sub_key}", ln=True)
                     pdf.ln(5)
 
-                    for task in sub_tasks:
-                        if isinstance(task, dict) and 'task_name' in task:
-                            total_tasks += 1
-                            status = task['status']
+                    if isinstance(sub_tasks, list):
+                        for task in sub_tasks:
+                            if isinstance(task, dict) and 'task_name' in task:
+                                total_tasks += 1
+                                status = task['status']
 
-                            # Update counters based on status
-                            if status == 'ok':
-                                ok_tasks += 1
-                                pdf.set_text_color(0, 128, 0)  # Green
-                            elif status == 'failed':
-                                failed_tasks += 1
-                                pdf.set_text_color(255, 0, 0)  # Red
-                            elif status == 'changed':
-                                changed_tasks += 1
-                                pdf.set_text_color(0, 0, 255)  # Blue
+                                # Update counters based on status
+                                if status == 'ok':
+                                    ok_tasks += 1
+                                    pdf.set_text_color(0, 128, 0)  # Green
+                                elif status == 'failed':
+                                    failed_tasks += 1
+                                    pdf.set_text_color(255, 0, 0)  # Red
+                                elif status == 'changed':
+                                    changed_tasks += 1
+                                    pdf.set_text_color(0, 0, 255)  # Blue
+                                else:
+                                    pdf.set_text_color(0, 0, 0)  # Default black
+
+                                # Add task details
+                                pdf.set_font("Arial", size=12)
+                                pdf.cell(200, 10, txt=f"      Task: {task['task_name']}", ln=True)
+                                pdf.cell(200, 10, txt=f"        Status: {status}", ln=True)
+                                pdf.cell(200, 10, txt=f"        Message: {task.get('message', 'No additional details.')}", ln=True)
+                                pdf.ln(5)
+
+                                # Reset text color to black
+                                pdf.set_text_color(0, 0, 0)
                             else:
-                                pdf.set_text_color(0, 0, 0)  # Default black
-
-                            # Add task details
-                            pdf.set_font("Arial", size=12)
-                            pdf.cell(200, 10, txt=f"      Task: {task['task_name']}", ln=True)
-                            pdf.cell(200, 10, txt=f"        Status: {status}", ln=True)
-                            pdf.cell(200, 10, txt=f"        Message: {task.get('message', 'No additional details.')}", ln=True)
-                            pdf.ln(5)
-
-                            # Reset text color to black
-                            pdf.set_text_color(0, 0, 0)
-                        else:
-                            pdf.set_font("Arial", size=12)
-                            pdf.cell(200, 10, txt=f"      [ERROR] Unexpected task format: {task}", ln=True)
-                            pdf.ln(5)
+                                pdf.set_font("Arial", size=12)
+                                pdf.cell(200, 10, txt=f"      [ERROR] Unexpected task format: {task}", ln=True)
+                                pdf.ln(5)
+                    else:
+                        pdf.set_font("Arial", size=12)
+                        pdf.cell(200, 10, txt=f"      [ERROR] Unexpected sub-task format: {sub_tasks}", ln=True)
+                        pdf.ln(5)
             else:
                 # Handle tasks directly if not a dictionary
                 for task in tasks:
