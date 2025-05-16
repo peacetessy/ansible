@@ -1,0 +1,15 @@
+ansible==6.7.0
+ansible-core==2.13.13
+bcrypt==4.3.0
+cffi==1.17.1
+colorama==0.4.6
+cryptography==44.0.3
+fpdf==1.7.2
+jinja2==3.1.6
+MarkupSafe==2.1.5
+packaging==25.0
+paramiko==3.5.1
+pycparser==2.22
+PyNaCl==1.5.0
+PyYAML==6.0.2
+resolvelib==0.8.1

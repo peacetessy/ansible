@@ -1,0 +1,28 @@
+---
+- name: ADD END DEVICE CONNECTED INTERFACES
+  hosts: switches
+  gather_facts: false
+
+  vars:
+    output_file: "ansible_files/host_vars/{{ inventory_hostname }}.yml"  # Path to the existing YAML file
+
+  tasks:
+    - name: RETRIEVE ALL INTERFACES FROM EACH SWITCH
+      ios_command:
+        commands:
+          - "show interfaces status"
+      register: interface_status
+
+    - name: FILTER INTERFACES
+      set_fact:
+        access_interfaces: "{{ access_interfaces | default([]) + [item.split()[0]] }}"
+      with_items: "{{ interface_status.stdout[0].splitlines() }}"
+      when: "'trunk' not in item and item.split()[2] | string"
+      no_log: true
+
+    - name: ADD SPECIFIC INTERFACES TO EACH SWITCH'S VARIABLE FILE
+      lineinfile:      
+        path: "{{ output_file }}"
+        line: "access_interfaces: {{ access_interfaces | reject('equalto', 'Port')|list }}"
+        create: yes
+        insertafter: EOF
