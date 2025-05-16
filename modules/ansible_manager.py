@@ -141,37 +141,23 @@ def validate_vault_password(password):
     return True
 
 
-def encrypt_host_vars():
-    global vault_password_global
- 
-
+def encrypt_host_vars(vault_password):
+    """
+    Encrypts host_vars and group_vars files using the provided vault password.
+    """
     host_vars_dir = os.path.join(output_dir, "host_vars")
     group_vars_dir = os.path.join(output_dir, "group_vars")
 
     if not os.path.exists(host_vars_dir) or not os.path.exists(group_vars_dir):
         return None
 
- 
-    while True:
-        vault_password = getpass.getpass(Fore.YELLOW + "\n[INFO] Enter Ansible Vault password: ")
-        if not validate_vault_password(vault_password):
-            continue
-        confirm_password = getpass.getpass(Fore.YELLOW + "\n[INFO] Confirm Ansible Vault password: ")
-        if vault_password != confirm_password:
-            print(Fore.RED + "\n[ERROR] Passwords do not match. Please try again.")
-            continue
-        break
-
-    vault_password_global = vault_password
-
-    # Créer un fichier temporaire contenant le mot de passe
+    # Create a temporary file containing the password
     with tempfile.NamedTemporaryFile(mode='w+', delete=False) as temp_file:
         temp_file.write(vault_password)
         temp_file.flush()
         temp_path = temp_file.name
-
     try:
-         # Chiffrer les fichiers dans host_vars (ajout)
+        # Encrypt files in host_vars
         for file_name in os.listdir(host_vars_dir):
             file_path = os.path.join(host_vars_dir, file_name)
             subprocess.run(
@@ -179,16 +165,19 @@ def encrypt_host_vars():
                 check=True
             )
 
-        # Chiffrer les fichiers dans group_vars (ajout)
+        # Encrypt files in group_vars
         for file_name in os.listdir(group_vars_dir):
             file_path = os.path.join(group_vars_dir, file_name)
+            
             subprocess.run(
                 ["ansible-vault", "encrypt", file_path, "--vault-password-file", temp_path],
-                check=True
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
             )
     except subprocess.CalledProcessError as e:
         return False
-	    
+
     return temp_path
 
 
@@ -265,11 +254,16 @@ def apply_with_ansible():
         print(Fore.RED + "\n[ERROR] Inventory path not found.")
         return
 
-   # Call encryption
-    vault_path = encrypt_host_vars()
-    if not vault_path:
-        print(Fore.RED + "\n[ERROR] Vault encryption failed.")
-        return
+    # Prompt and validate the Vault password BEFORE running playbooks
+    while True:
+        vault_password = getpass.getpass(Fore.YELLOW + "\n[INFO] Enter Ansible Vault password: ")
+        if not validate_vault_password(vault_password):
+            continue
+        confirm_password = getpass.getpass(Fore.YELLOW + "\n[INFO] Confirm Ansible Vault password: ")
+        if vault_password != confirm_password:
+            print(Fore.RED + "\n[ERROR] Passwords do not match. Please try again.")
+            continue
+        break
 
     playbook_results = {}
 	
@@ -321,10 +315,20 @@ def apply_with_ansible():
                 "stdout": e.stdout.strip() if e.stdout else ""
             }
             continue
-
     
+    # Encrypt the files 
+    temp_path = encrypt_host_vars(vault_password)
+    
+    # Clean up the temporary vault password file
+    if temp_path and os.path.exists(temp_path):
+    os.remove(temp_path)
+
+    # Generate the PDF report BEFORE encryption
+    generate_report_pdf(playbook_results)
+
     # Return the aggregated results for all playbooks
     return playbook_results
+
 
 def execute_full_process(config_path, secrets_path):
     """
@@ -340,6 +344,3 @@ def execute_full_process(config_path, secrets_path):
     if not playbook_results:
         print(Fore.RED + "\n[ERROR] Failed to apply configurations with Ansible.")
         return
-
-    # 3. Generate PDF report
-    generate_report_pdf(playbook_results)
