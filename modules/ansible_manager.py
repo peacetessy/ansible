@@ -321,7 +321,7 @@ def apply_with_ansible():
     
     # Clean up the temporary vault password file
     if temp_path and os.path.exists(temp_path):
-    os.remove(temp_path)
+    	os.remove(temp_path)
 
     # Generate the PDF report BEFORE encryption
     generate_report_pdf(playbook_results)
