@@ -11,7 +11,7 @@ import os
 import yaml
 import json
 from colorama import Fore, init
-from report_generator import generate_pdf_report
+from modules.report_generator import generate_pdf_report
 
 # Initialize colorama
 init(autoreset=True)
@@ -505,7 +505,7 @@ def apply_with_ansible():
         os.remove(temp_path)
 	    
     # Generate the PDF report BEFORE encryption
-    generate_report_pdf(ansible_output_path)
+    generate_pdf_report(ansible_output_path)
 
 def execute_full_process(config_path, secrets_path):
     """
