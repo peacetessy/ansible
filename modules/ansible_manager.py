@@ -162,7 +162,8 @@ def encrypt_host_vars(vault_password):
             file_path = os.path.join(host_vars_dir, file_name)
             subprocess.run(
                 ["ansible-vault", "encrypt", file_path, "--vault-password-file", temp_path],
-                check=True
+                check=True,
+		stdout=subprocess.DEVNULL
             )
 
         # Encrypt files in group_vars
@@ -172,8 +173,7 @@ def encrypt_host_vars(vault_password):
             subprocess.run(
                 ["ansible-vault", "encrypt", file_path, "--vault-password-file", temp_path],
                 check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stdout=subprocess.DEVNULL
             )
     except subprocess.CalledProcessError as e:
         return False
@@ -265,10 +265,15 @@ def apply_with_ansible():
             continue
         break
 
-    playbook_results = {}
 	
     print(Fore.YELLOW + "\n[INFO] Applying configurations with Ansible...")
-	
+
+    #Create a temporary file for ansible output
+    tmp_dir = tempfile.gettempdir()
+    ansible_output_path = os.path.join(tmp_dir, "all_playbooks_output.txt")
+    with open(ansible_output_path, "w", encoding="utf-8") as f:
+        f.write("")
+
     for playbook in playbooks:
         playbook_path = os.path.join(playbook_dir, playbook)
         if not os.path.exists(playbook_path):
@@ -276,59 +281,30 @@ def apply_with_ansible():
             continue
 
         try:
-            # First subprocess.run: Display output in the terminal without errors
-            subprocess.run(
-                [
-                    "ansible-playbook",
-                    "-i", inventory_path,
-                    playbook_path
-                ],
-                stdout=sys.stdout,  # Display stdout in the terminal
-                stderr=subprocess.DEVNULL,  # Suppress stderr
-                check=True,
-                text=True
-            )
+            # Using tee via the shell to display and save raw output
+            cmd = f"script -q -c 'ANSIBLE_FORCE_COLOR=1 ansible-playbook -i {inventory_path} {playbook_path}' /dev/null | grep -v '\\[WARNING\\]' | tee -a {ansible_output_path}"
 
-            # Second subprocess.run: Capture output for parsing
             completed_process = subprocess.run(
-                [
-                    "ansible-playbook",
-                    "-i", inventory_path,
-                    playbook_path
-                ],
-                stdout=subprocess.PIPE,  # Capture stdout
-                stderr=subprocess.DEVNULL,  # Capture stderr
+                cmd,
+                shell=True,
                 check=True,
-                text=True
+                stderr=subprocess.PIPE
             )
-
-            # Parse raw output
-            stdout_text = completed_process.stdout
-            playbook_results[playbook] = parse_ansible_output_raw(stdout_text)
 
         except subprocess.CalledProcessError as e:
             # Handle errors and capture stderr
             print(Fore.RED + f"\n[ERROR] Failed to execute {playbook}: {e}")
-            playbook_results[playbook] = {
-                "error": str(e),
-                "stderr": e.stderr.strip() if e.stderr else "",
-                "stdout": e.stdout.strip() if e.stdout else ""
-            }
             continue
-    
-    # Encrypt the files 
+
+    # Encrypt the files
     temp_path = encrypt_host_vars(vault_password)
-    
+
     # Clean up the temporary vault password file
     if temp_path and os.path.exists(temp_path):
-    	os.remove(temp_path)
-
+        os.remove(temp_path)
+	    
     # Generate the PDF report BEFORE encryption
-    generate_report_pdf(playbook_results)
-
-    # Return the aggregated results for all playbooks
-    return playbook_results
-
+    generate_report_pdf(ansible_output_path)
 
 def execute_full_process(config_path, secrets_path):
     """
@@ -340,7 +316,5 @@ def execute_full_process(config_path, secrets_path):
     generate_ansible_files(config_path, secrets_path)
 
     # 2. Apply configurations using Ansible
-    playbook_results = apply_with_ansible()
-    if not playbook_results:
-        print(Fore.RED + "\n[ERROR] Failed to apply configurations with Ansible.")
-        return
+    apply_with_ansible()
+    
