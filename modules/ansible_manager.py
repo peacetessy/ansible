@@ -180,68 +180,6 @@ def encrypt_host_vars(vault_password):
 
     return temp_path
 
-
-def parse_ansible_output_raw(raw_output):
-    """
-    Parses raw Ansible output and structures it for reporting.
-    :param raw_output: The raw output string from Ansible.
-    :return: A structured dictionary with playbook results.
-    """
-    playbook_results = {}
-    current_play = None
-    current_task = None
-
-    for line in raw_output.splitlines():
-        try:
-            # Detect the start of a play
-            if line.startswith("PLAY ["):
-                current_play = line.split("[")[1].split("]")[0]
-                playbook_results[current_play] = {}
-
-            # Detect the start of a task
-            elif line.startswith("TASK ["):
-                current_task = line.split("[")[1].split("]")[0]
-
-            # Detect task results
-            elif line.startswith("ok:") or line.startswith("changed:") or line.startswith("failed:"):
-                parts = line.split(":", 2)
-                status = parts[0].strip()
-                host_info = parts[1].strip()
-
-                # Remove brackets from host names like [ASW1]
-                host = re.sub(r"^\[(.*?)\]$", r"\1", host_info)
-
-                # Handle cases with (item=...)
-                match = re.match(r"(.*?) => \(item=(.*?)\)", host_info)
-                if match:
-                    host = match.group(1).strip()
-                    item = match.group(2).strip()
-                    if host not in playbook_results[current_play]:
-                        playbook_results[current_play][host] = {}
-                    if item not in playbook_results[current_play][host]:
-                        playbook_results[current_play][host][item] = []
-                    message = parts[2].strip() if len(parts) > 2 else "No additional details."
-                    playbook_results[current_play][host][item].append({
-                        "task_name": current_task,
-                        "status": status,
-                        "message": message
-                    })
-                else:
-                    # Handle regular cases without (item=...)
-                    if host not in playbook_results[current_play]:
-                        playbook_results[current_play][host] = []
-                    message = parts[2].strip() if len(parts) > 2 else "No additional details."
-                    playbook_results[current_play][host].append({
-                        "task_name": current_task,
-                        "status": status,
-                        "message": message
-                    })
-        except Exception as e:
-            print(f"[ERROR] Failed to parse line: {line}. Error: {e}")
-            continue
-
-    return playbook_results
-
 def apply_with_ansible():
     """
     Applies configurations using Ansible.
