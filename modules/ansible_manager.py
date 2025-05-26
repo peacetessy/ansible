@@ -2,7 +2,7 @@ import re
 import getpass
 import subprocess
 import sys
-import tempfileimport re
+import tempfile
 import getpass
 import subprocess
 import sys
@@ -11,7 +11,7 @@ import os
 import yaml
 import json
 from colorama import Fore, init
-from report import generate_pdf_report
+from report_generator import generate_pdf_report
 
 # Initialize colorama
 init(autoreset=True)
