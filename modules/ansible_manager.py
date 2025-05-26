@@ -7,7 +7,6 @@ import os
 import yaml
 import json
 from colorama import Fore, init
-from modules.report_generator import generate_report_pdf
 
 # Initialize colorama
 init(autoreset=True)
