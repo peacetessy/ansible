@@ -212,7 +212,7 @@ def apply_with_ansible():
 
     #Create a temporary file for ansible output
     tmp_dir = tempfile.gettempdir()
-    ansible_output_path = os.path.join(tmp_dir, "all_playbooks_output.txt")
+    ansible_output_path = os.path.join(tmp_dir, "ansible_output.txt")
     with open(ansible_output_path, "w", encoding="utf-8") as f:
         f.write("")
 
