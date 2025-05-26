@@ -169,8 +169,7 @@ def generate_pdf_report(log_file, output_file=None):
 
     date_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     if not output_file:
-        base_name = os.path.splitext(os.path.basename(log_file))[0]
-        output_file = os.path.join(report_dir, f"ansible_report_{base_name}_{date_str}.pdf")
+        output_file = os.path.join(report_dir, f"ansible_report_{date_str}.pdf")
     else:
         output_file = os.path.join(report_dir, output_file)
 
