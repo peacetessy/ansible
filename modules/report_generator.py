@@ -164,7 +164,7 @@ def generate_pdf_report(log_file, output_file=None):
     The report will be stored in a 'report' directory (created if needed).
     """
     date_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    default_filename = os.path.join(report_dir, f"ansible_report_{date_str}.pdf")
+    default_filename = f"ansible_report_{date_str}.pdf"
 
     if not output_file:
         output_file = choose_save_location_cli(default_filename, ".pdf")
