@@ -241,7 +241,7 @@ def apply_with_ansible():
 
         try:
             # Using tee via the shell to display and save raw output
-            cmd = f"script -q -c 'ANSIBLE_FORCE_COLOR=1 ansible-playbook -i {inventory_path} {playbook_path}' /dev/null | grep -v '\\[WARNING\\]' | tee -a {ansible_output_path}"
+            cmd = f"script -q -c 'ANSIBLE_FORCE_COLOR=1 ansible-playbook -f 1 -i {inventory_path} {playbook_path}' /dev/null | grep -v '\\[WARNING\\]' | tee -a {ansible_output_path}"
 
             completed_process = subprocess.run(
                 cmd,
