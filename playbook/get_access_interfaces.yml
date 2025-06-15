@@ -21,8 +21,8 @@
       no_log: true
 
     - name: ADD SPECIFIC INTERFACES TO EACH SWITCH'S VARIABLE FILE
-      copy:
-        dest: "{{ output_file }}"
-        content: |
-          access_interfaces: {{ access_interfaces | reject('equalto', 'Port') | list | to_nice_yaml(indent=2) | indent(2) }}
-    
+      lineinfile:      
+        path: "{{ output_file }}"
+        line: "access_interfaces: {{ access_interfaces | reject('equalto', 'Port')|list }}"
+        create: yes
+        insertafter: EOF
