@@ -7,16 +7,17 @@ from colorama import Fore, Style, init
 # Initialize colorama
 init(autoreset=True)
 
-
-def choose_save_location_cli(default_name, extension):
+def choose_save_location_cli(default_filename, extension, prompt_message=None):
     """
     Ask the user to enter a file path (with auto-completion).
     - If empty: use current directory + default_name
     - If a directory: use default_name in that directory
     """
     while True:
+        if prompt_message is None:
+            prompt_message = f"\nEnter the full path and file name to save (default: {default_name}): "
         path = prompt(
-            f"\nEnter the full path and file name to save (default: {default_name}): ",
+            prompt_message,
             completer=PathCompleter(only_directories=False, expanduser=True)
         ).strip()
         if not path:
@@ -29,6 +30,7 @@ def choose_save_location_cli(default_name, extension):
         if not path.lower().endswith(extension):
             path += extension
         return path
+
 
 def generate_config_template(mode="switch"):
     """
