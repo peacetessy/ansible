@@ -15,7 +15,7 @@ def choose_save_location_cli(default_filename, extension, prompt_message=None):
     """
     while True:
         if prompt_message is None:
-            prompt_message = f"\nEnter the full path and file name to save (default: {default_name}): "
+            prompt_message = f"\nEnter the full path and file name to save (default: {default_filename}): "
         path = prompt(
             prompt_message,
             completer=PathCompleter(only_directories=False, expanduser=True)
