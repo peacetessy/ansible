@@ -102,8 +102,11 @@
 
     - name: CONFIGURE ACCESS INTERFACES
       ios_config:
+        authorize: yes
+        match: none
         parents: "interface {{ item }}"
         lines:
+          - shutdown
           - switchport mode access
           - spanning-tree portfast
           - spanning-tree bpduguard enable
@@ -124,6 +127,8 @@
           - dot1x timeout tx-period 10
           - ip access-group ACL-ALLOW in
           - authentication port-control auto
+          - no shutdown
       loop: "{{ access_interfaces }}"
       no_log: true
-      
+
+          
