@@ -165,7 +165,7 @@ def generate_pdf_report(log_file, output_file=None):
     """
     date_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     default_filename = f"ansible_report_{date_str}.pdf"
-    prompt_message = f"Please enter the full path and file name to save the report (default: {default_name}): "
+    prompt_message = f"Please enter the full path and file name to save the report (default: {default_filename}): "
 
     if not output_file:
         output_file = choose_save_location_cli(default_filename, ".pdf", prompt_message)
