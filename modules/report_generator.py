@@ -102,7 +102,7 @@ def create_summary_table(playbooks, hosts):
                     host_ok += 1
                 elif status == 'changed':
                     host_changed += 1
-                elif status == 'failed':
+                elif status == 'failed' or status == 'fatal':
                     host_failed += 1
         status = '✓' if host_failed == 0 else '✗'
         data.append([host, str(host_ok), str(host_changed), str(host_failed), status])
@@ -165,9 +165,10 @@ def generate_pdf_report(log_file, output_file=None):
     """
     date_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     default_filename = f"ansible_report_{date_str}.pdf"
+    prompt_message = f"Please enter the full path and file name to save the report (default: {default_name}): "
 
     if not output_file:
-        output_file = choose_save_location_cli(default_filename, ".pdf")
+        output_file = choose_save_location_cli(default_filename, ".pdf", prompt_message)
 
     # Parse the log
     parser = AnsibleLogParser(log_file)
@@ -349,7 +350,7 @@ def generate_pdf_report(log_file, output_file=None):
                         ('TEXTCOLOR', (col_idx, row_idx), (col_idx, row_idx), colors.HexColor('#155724')),   # dark green
                         ('FONTNAME', (col_idx, row_idx), (col_idx, row_idx), bold_font),
                     ]))
-                elif cell_value == 'failed':
+                elif cell_value == 'failed' or cell_value == 'fatal':
                     table.setStyle(TableStyle([
                         ('BACKGROUND', (col_idx, row_idx), (col_idx, row_idx), colors.HexColor('#f8d7da')),  # light red
                         ('TEXTCOLOR', (col_idx, row_idx), (col_idx, row_idx), colors.HexColor('#721c24')),   # dark red
