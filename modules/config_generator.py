@@ -22,10 +22,10 @@ def choose_save_location_cli(default_filename, extension, prompt_message=None):
         ).strip()
         if not path:
             # Just Enter: default name in current directory
-            path = os.path.join(os.getcwd(), default_name)
+            path = os.path.join(os.getcwd(), default_filename)
         elif os.path.isdir(path):
-            # User entered a directory, use default_name in that directory
-            path = os.path.join(path, default_name)
+            # User entered a directory, use default_filename in that directory
+            path = os.path.join(path, default_filename)
         # Ensure .yml extension
         if not path.lower().endswith(extension):
             path += extension
@@ -167,7 +167,6 @@ radius_test_password: ""
 
     elif mode == "server":
         yaml_template = """
-
 # ===================================================================================================================================================================
 #                                                               Server Parameters Configuration File
 # ===================================================================================================================================================================
