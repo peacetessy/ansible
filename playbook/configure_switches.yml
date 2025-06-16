@@ -102,7 +102,6 @@
 
     - name: CONFIGURE ACCESS INTERFACES
       ios_config:
-        authorize: yes
         match: none
         parents: "interface {{ item }}"
         lines:
