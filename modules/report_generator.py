@@ -13,6 +13,12 @@ import traceback
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from modules.config_generator import choose_save_location_cli
+from colorama import Fore, init
+
+# Initialize colorama
+init(autoreset=True)
+
+
 """
 Script to generate a modern PDF report from an Ansible log file.
 """
@@ -362,5 +368,5 @@ def generate_pdf_report(log_file, output_file=None):
 
     # Build the PDF
     doc.build(story)
-    print(f"Report generated: {output_file}")
+    print(Fore.GREEN + f"\nReport generated: {output_file}")
 
