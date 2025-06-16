@@ -126,6 +126,5 @@
           - ip access-group ACL-ALLOW in
           - authentication port-control auto
       loop: "{{ access_interfaces }}"
-      no_log: true
 
           
