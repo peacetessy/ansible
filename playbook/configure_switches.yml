@@ -102,7 +102,7 @@
 
     - name: CONFIGURE ACCESS INTERFACES
       ios_config:
-        match: none
+        match: line
         parents: "interface {{ item }}"
         lines:
           - switchport mode access
