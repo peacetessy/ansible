@@ -108,7 +108,7 @@ def generate_ansible_files(switches_config_path, switches_secrets_path, servers_
                     "ansible_become": True,
                     "ansible_become_method": "enable",
                     "ansible_become_password": per_switch_creds.get("enable_password"),
-		    "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+		    "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=ssh-rsa"
                 }
             else:
                 # Use global SSH credentials
@@ -124,7 +124,7 @@ def generate_ansible_files(switches_config_path, switches_secrets_path, servers_
                     "ansible_become": True,
                     "ansible_become_method": "enable",
                     "ansible_become_password": switches_secrets.get("global_enable_password"),
-		    "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+		    "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=ssh-rsa"
                 }
 
             # Add source_interface only if global Port is not set and switch has 'port'
