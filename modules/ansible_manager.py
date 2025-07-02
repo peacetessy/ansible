@@ -102,13 +102,12 @@ def generate_ansible_files(switches_config_path, switches_secrets_path, servers_
                     "ansible_password": per_switch_creds.get("ssh_password"),
                     "ansible_network_os": "cisco.ios.ios",
                     "ansible_connection": "network_cli",
-                    "ansible_command_timeout": 120,
-                    "ansible_connect_timeout": 300,
-                    "ansible_persistent_connect_timeout": 100,
+                    "ansible_command_timeout": 1200,
+                    "ansible_connect_timeout": 600,
+                    "ansible_persistent_connect_timeout": 300,
                     "ansible_become": True,
                     "ansible_become_method": "enable",
-                    "ansible_become_password": per_switch_creds.get("enable_password"),
-		    "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=ssh-rsa"
+                    "ansible_become_password": per_switch_creds.get("enable_password")
                 }
             else:
                 # Use global SSH credentials
@@ -118,13 +117,12 @@ def generate_ansible_files(switches_config_path, switches_secrets_path, servers_
                     "ansible_password": global_creds.get("Password"),
                     "ansible_network_os": "cisco.ios.ios",
                     "ansible_connection": "network_cli",
-                    "ansible_command_timeout": 120,
-                    "ansible_connect_timeout": 300,
-                    "ansible_persistent_connect_timeout": 100,
+                    "ansible_command_timeout": 1200,
+                    "ansible_connect_timeout": 600,
+                    "ansible_persistent_connect_timeout": 300,
                     "ansible_become": True,
                     "ansible_become_method": "enable",
-                    "ansible_become_password": switches_secrets.get("global_enable_password"),
-		    "ansible_ssh_common_args": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o HostKeyAlgorithms=ssh-rsa"
+                    "ansible_become_password": switches_secrets.get("global_enable_password")
                 }
 
             # Add source_interface only if global Port is not set and switch has 'port'
