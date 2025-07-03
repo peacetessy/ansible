@@ -12,6 +12,9 @@ from modules.report_generator import generate_pdf_report
 # Initialize colorama
 init(autoreset=True)
 
+# Disable SSH host key checking in Ansible runs launched from this script
+os.environ["ANSIBLE_HOST_KEY_CHECKING"] = "False"
+
 output_dir = "ansible_files"  # Directory where Ansible files will be generated
 
 # Global variable to store the Vault password
