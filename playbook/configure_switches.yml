@@ -2,23 +2,31 @@
 - name: ISE - SWITCH CONFIGURATION
   hosts: switches
   gather_facts: false
-
+  
   tasks:
-    - name: ENABLE HTTP AND HTTPS
-      ios_config:
-        lines:
-          - ip http server
-          - ip http secure-server
-
-    - name: CONFIGURE A LOCAL USER FOR TESTING 
-      ansible.netcommon.cli_config:
-        config: |
-          username {{ radius_user }} password 0 {{ radius_password }}
-
-    - name: CONFIGURE AAA AND RADIUS AUTHENTICATION
+    - name: Enable AAA
       ios_config:
         lines:
           - aaa new-model
+
+    - name: Configure RADIUS servers
+      ios_config:
+        parents: "radius server {{ item.name }}"
+        lines:
+          - address ipv4 {{ item.Ip }} auth-port 1812 acct-port 1813
+          - key {{ item.key }}
+      loop: "{{ ise_servers }}"
+
+    - name: Configure RADIUS server group
+      ios_config:
+        parents: "aaa group server radius {{ aaa_group }}"
+        lines:
+          - "server name {{ item.name }}"
+      loop: "{{ ise_servers }}"
+
+    - name: Configure AAA authentication, authorization and accounting
+      ios_config:
+        lines:
           - aaa authentication dot1x default group {{ aaa_group }}
           - aaa authorization network default group {{ aaa_group }}
           - aaa authorization auth-proxy default group {{ aaa_group }}
@@ -27,25 +35,18 @@
           - aaa accounting update periodic {{ update_period }}
           - aaa accounting system default start-stop group {{ aaa_group }}
 
-    - name: CONFIGURE RADIUS SERVERS
+    - name: Configure a local user for testing
+      ansible.netcommon.cli_config:
+        config: |
+          username {{ radius_user }} password 0 {{ radius_password }}
+
+    - name: Enable HTTP and HTTPS servers
       ios_config:
         lines:
-          - address ipv4 {{ item.Ip }} auth-port 1812 acct-port 1813
-          - key {{ item.key }}
-          - automate-tester username {{ radius_user }}
-        parents: "radius server {{ item.name }}"
-      loop: "{{ ise_servers }}"
-      no_log: true
+          - ip http server
+          - ip http secure-server
 
-    - name: CONFIGURE AAA SERVER RADIUS DYNAMIC-AUTHOR 
-      ios_config:
-        lines:
-          - client {{ item.Ip }} server-key {{ item.key }}
-        parents: aaa server radius dynamic-author
-      loop: "{{ ise_servers }}"
-      no_log: true
-
-    - name: ENABLE RADIUS ATTRIBUTES
+    - name: Enable radius attributes for ISE
       ios_config:
         lines:
           - radius-server vsa send accounting
@@ -55,14 +56,14 @@
           - radius-server attribute 25 access-request include
           - radius-server attribute 31 mac format ietf upper-case
 
-    - name: CONFIGURE SOURCE INTERFACES FOR RADIUS AND SNMP
+    - name: Configure source interface for RADIUS and SNMP
       ios_config:
         lines:
           - ip radius source-interface {{ source_interface }}
           - snmp-server trap-source {{ source_interface }}
           - snmp-server source-interface informs {{ source_interface }}
 
-    - name: ENABLE 802.1X AND DEVICE TRACKING
+    - name: Enable 802.1X and device tracking
       ios_config:
         lines:
           - dot1x system-auth-control
@@ -73,7 +74,7 @@
           - device-sensor notify all-changes
           - dot1x critical eapol
 
-    - name: CONFIGURE ACL-DEFAULT
+    - name: Configure ACL-DEFAULT
       ios_config:
         parents: ip access-list extended ACL-ALLOW
         lines:
@@ -90,7 +91,7 @@
           - remark Drop all the rest
           - deny ip any any log
 
-    - name: CONFIGURE ACL-WEBAUTH-REDIRECT
+    - name: Configure ACL-WEBAUTH-REDIRECT
       ios_config:
         parents: ip access-list extended ACL-WEBAUT-REDIRECT
         lines:
@@ -100,7 +101,7 @@
           - permit tcp any any eq 80
           - permit tcp any any eq 443
 
-    - name: CONFIGURE ACCESS INTERFACES
+    - name: Configure access interfaces
       ios_config:
         match: line
         parents: "interface {{ item }}"
@@ -117,7 +118,7 @@
           - authentication open
           - authentication host-mode multi-auth
           - authentication priority dot1x mab
-          - authentication order dot1x mab      
+          - authentication order dot1x mab
           - authentication violation restrict
           - authentication periodic
           - mab
@@ -126,5 +127,3 @@
           - ip access-group ACL-ALLOW in
           - authentication port-control auto
       loop: "{{ access_interfaces }}"
-
-          
