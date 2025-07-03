@@ -13,7 +13,7 @@
     - name: CONFIGURE A LOCAL USER FOR TESTING 
       ansible.netcommon.cli_config:
         config: |
-          username {{ radius_user }} privilege 15 password 0 {{ radius_password }}
+          username {{ radius_user }} password 0 {{ radius_password }}
 
     - name: CONFIGURE AAA AND RADIUS AUTHENTICATION
       ios_config:
