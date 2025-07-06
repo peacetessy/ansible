@@ -16,6 +16,7 @@
           - address ipv4 {{ item.Ip }} auth-port 1812 acct-port 1813
           - key {{ item.key }}
       loop: "{{ ise_servers }}"
+      no_log: true
 
     - name: Configure RADIUS server group
       ios_config:
@@ -23,6 +24,7 @@
         lines:
           - "server name {{ item.name }}"
       loop: "{{ ise_servers }}"
+      no_log: true
 
     - name: Configure AAA authentication, authorization and accounting
       ios_config:
