@@ -37,10 +37,10 @@
           - aaa accounting update periodic {{ update_period }}
           - aaa accounting system default start-stop group {{ aaa_group }}
 
-    - name: Configure a local user for testing
-      ansible.netcommon.cli_config:
-        config: |
-          username {{ radius_user }} password 0 {{ radius_password }}
+    - name: Configure local user for testing
+      ios_config:
+        lines:
+          - "username {{ radius_user }} password 0 {{ radius_password }}"
 
     - name: Enable HTTP and HTTPS servers
       ios_config:
@@ -54,16 +54,20 @@
           - radius-server vsa send accounting
           - radius-server vsa send authentication
           - radius-server attribute 6 on-for-login-auth
+          - radius-server attribute 6 support-multiple
           - radius-server attribute 8 include-in-access-req
           - radius-server attribute 25 access-request include
+          - radius-server dead-criteria time 10 tries 3
+          - radius-server deadtime 30
           - radius-server attribute 31 mac format ietf upper-case
+          - radius-server attribute 31 send nas-port-detail
 
     - name: Configure source interface for RADIUS and SNMP
       ios_config:
         lines:
           - ip radius source-interface {{ source_interface }}
           - snmp-server trap-source {{ source_interface }}
-          - snmp-server source-interface informs {{ source_interface }}
+          - snmp-server source-interface inform {{ source_interface }}
 
     - name: Enable 802.1X and device tracking
       ios_config:
@@ -71,61 +75,67 @@
           - dot1x system-auth-control
           - ip device tracking
           - ip device tracking probe auto-source
-          - ip device tracking probe delay 10
           - device-sensor accounting
           - device-sensor notify all-changes
           - dot1x critical eapol
+          - authentication critical recovery delay 1000
+
+    - name: Configure DHCP snooping
+      ios_config:
+        lines:
+          - no ip dhcp snooping information option
+          - ip dhcp snooping
+          - ip dhcp snooping vlan 10,30,80
+
+    - name: Enable EPM logging
+      ios_config:
+        lines:
+          - epm logging
 
     - name: Configure ACL-DEFAULT
       ios_config:
-        parents: ip access-list extended ACL-ALLOW
         lines:
-          - permit ip any any
           - ip access-list extended ACL-DEFAULT
-          - remark DHCP
+          - remark Autoriser DHCP
           - permit udp any eq bootpc any eq bootps
-          - remark DNS
-          - permit udp any any eq domain
-          - remark Ping
-          - permit icmp any any
-          - remark PXE / TFTP
-          - permit udp any any eq tftp
-          - remark Drop all the rest
-          - deny ip any any log
-
-    - name: Configure ACL-WEBAUTH-REDIRECT
-      ios_config:
-        parents: ip access-list extended ACL-WEBAUT-REDIRECT
-        lines:
-          - remark explicitly deny DNS from being redirected
-          - deny udp any any eq 53
-          - remark redirect all applicable traffic to the ISE Server
-          - permit tcp any any eq 80
-          - permit tcp any any eq 443
+          - remark Autoriser DNS
+          - permit udp any any eq 53
+          - permit tcp any any eq 53
+          - remark Autoriser authentification RADIUS
+          - permit udp any any eq 1812
+          - permit udp any any eq 1813
+          - remark ICMP pour test
+          - permit icmp any any echo
+          - remark Bloquer le reste
+          - deny ip any any
 
     - name: Configure access interfaces
       ios_config:
-        match: line
         parents: "interface {{ item }}"
         lines:
           - switchport mode access
           - spanning-tree portfast
           - spanning-tree bpduguard enable
           - authentication event fail action next-method
-          - authentication event server dead action authorize vlan {{ vlan_dead }}
           - authentication event server dead action authorize voice
-          - authentication event server alive action reinitialize
+          - authentication event server dead action reinitialize vlan {{ vlan_dead }}
           - authentication timer reauthenticate server
           - authentication timer inactivity server
-          - authentication open
           - authentication host-mode multi-auth
-          - authentication priority dot1x mab
+          - authentication open
           - authentication order dot1x mab
+          - authentication priority dot1x mab
+          - authentication port-control auto
           - authentication violation restrict
           - authentication periodic
           - mab
           - dot1x pae authenticator
           - dot1x timeout tx-period 10
-          - ip access-group ACL-ALLOW in
-          - authentication port-control auto
+          - dot1x max-reauth-req 3
+          - ip access-group ACL-DEFAULT in
       loop: "{{ access_interfaces }}"
+
+    - name: Save running config
+      ios_config:
+        save_when: changed
+
