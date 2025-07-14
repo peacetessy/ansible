@@ -238,7 +238,7 @@ def generate_config_files():
 
         # Sensitive file: same folder, _secrets suffix
         base, ext = os.path.splitext(path_switches)
-        path_switches_secrets = f"switches_secrets{ext}"
+        path_switches_secrets = f"{base}_secrets{ext}"
         with open(path_switches_secrets, "w", encoding="utf-8") as f:
             f.write(secret_switches)
         print(Fore.GREEN + f"\nSwitches sensitive data saved at: {path_switches_secrets}")
@@ -252,7 +252,7 @@ def generate_config_files():
 
         # Sensitive file: same folder, _secrets suffix
         base, ext = os.path.splitext(path_servers)
-        path_servers_secrets = f"servers_secrets{ext}"
+        path_servers_secrets = f"{base}_secrets{ext}"
         with open(path_servers_secrets, "w", encoding="utf-8") as f:
             f.write(secret_servers)
         print(Fore.GREEN + f"\nServers sensitive data saved at: {path_servers_secrets}")
