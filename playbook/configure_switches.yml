@@ -99,13 +99,8 @@
           - remark Autoriser DHCP
           - permit udp any eq bootpc any eq bootps
           - remark Autoriser DNS
-          - permit udp any any eq 53
-          - permit tcp any any eq 53
-          - remark Autoriser authentification RADIUS
-          - permit udp any any eq 1812
-          - permit udp any any eq 1813
-          - remark ICMP pour test
-          - permit icmp any any echo
+          - permit udp any any eq domain
+          - permit tcp any any eq domain
           - remark Bloquer le reste
           - deny ip any any
 
