@@ -94,23 +94,16 @@ aaa_group_name: ""
 radius_test_username: ""      
 
 # -------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# ACCOUNTING CONFIGURATION
-# -------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Specify here how often (in minutes) the SWITCH should send accounting updates to the RADIUS server.
-# For example, if you set this to 10, the switch will send an update every 10 minutes.
-# Example: 10
-accounting_update_period: "" 
-
-# -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 # VLAN CONFIGURATION
 # -------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# Enter here the VLAN number to use on the SWITCH if the RADIUS server is unreachable or if authentication fails.
-# Devices that cannot be authenticated will be placed in this VLAN, often called a "quarantine" or "guest" VLAN.
-# This allows you to limit access for devices that are not properly authenticated.
-# Example: 999
+# Specify here the VLAN number to be used on the switch if the RADIUS server is unreachable
+# or if authentication fails.
+# Devices that fail to authenticate will be placed into this VLAN, often referred to as a
+# "quarantine" or "guest" VLAN.
+# This allows you to limit network access for unauthorized devices, enhancing security.
+# Example: 90
 radius_dead_vlan: ""          
 """
-
         secret_template = """
 # ===================================================================================================================================================================
 #                                                       Sensitive Data Configuration File for Switches
