@@ -69,7 +69,6 @@ def generate_ansible_files(switches_config_path, switches_secrets_path, servers_
         group_vars = {
             "radius_user": switches_config.get("radius_test_username"),
             "radius_password": switches_secrets.get("radius_test_password"),
-            "update_period": switches_config.get("accounting_update_period"),
             "vlan_dead": switches_config.get("radius_dead_vlan"),
             "aaa_group": switches_config.get("aaa_group_name"),
             "ise_servers": ise_servers
