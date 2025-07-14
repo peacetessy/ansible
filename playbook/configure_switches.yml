@@ -80,13 +80,6 @@
           - dot1x critical eapol
           - authentication critical recovery delay 1000
 
-    - name: Configure DHCP snooping
-      ios_config:
-        lines:
-          - no ip dhcp snooping information option
-          - ip dhcp snooping
-          - ip dhcp snooping vlan 10,30,80
-
     - name: Enable EPM logging
       ios_config:
         lines:
