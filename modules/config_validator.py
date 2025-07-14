@@ -44,7 +44,7 @@ def validate_switches_config(switches_config_path):
 
         required_fields = [
             'switches', 'aaa_group_name',
-            'radius_test_username', 'accounting_update_period', 'radius_dead_vlan'
+            'radius_test_username', 'radius_dead_vlan'
         ]
         missing_fields = [field for field in required_fields if field not in config]
         if missing_fields:
@@ -80,10 +80,6 @@ def validate_switches_config(switches_config_path):
         # Validate VLAN
         if "radius_dead_vlan" in config and not is_valid_vlan(config["radius_dead_vlan"]):
             errors.append("'radius_dead_vlan' must be a valid VLAN ID (1-4094).")
-
-        # Validate accounting update period
-        if "accounting_update_period" in config and not is_valid_update_period(config["accounting_update_period"]):
-            errors.append("'accounting_update_period' must be a positive integer.")
 
         if errors:
             print(Fore.RED + "\n[ERROR] Switches configuration validation failed:")
