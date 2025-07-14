@@ -34,7 +34,7 @@
           - aaa authorization auth-proxy default group {{ aaa_group }}
           - aaa accounting dot1x default start-stop group {{ aaa_group }}
           - aaa session-id common
-          - aaa accounting update periodic {{ update_period }}
+          - aaa accounting update periodic 5
           - aaa accounting system default start-stop group {{ aaa_group }}
 
     - name: Configure local user for testing
