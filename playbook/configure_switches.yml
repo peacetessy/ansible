@@ -122,6 +122,11 @@
           - dot1x max-reauth-req 3
           - ip access-group ACL-DEFAULT in
       loop: "{{ access_interfaces }}"
+        
+    - name: Save running config
+      ios_config:
+        save_when: modified
 
+    
 
 
