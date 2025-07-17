@@ -31,3 +31,9 @@
         line: "access_interfaces: {{ access_interfaces | reject('equalto', 'Port')|list }}"
         create: yes
         insertafter: EOF
+        
+    - name: Save running config
+      ios_config:
+        save_when: modified
+
+    
