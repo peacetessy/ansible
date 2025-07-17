@@ -2,7 +2,7 @@
 - name: ISE - SWITCH CONFIGURATION
   hosts: switches
   gather_facts: false
-  
+
   tasks:
     - name: Enable AAA
       ios_config:
@@ -87,8 +87,8 @@
 
     - name: Configure ACL-DEFAULT
       ios_config:
+        parents: ip access-list extended ACL-DEFAULT
         lines:
-          - ip access-list extended ACL-DEFAULT
           - remark Autoriser DHCP
           - permit udp any eq bootpc any eq bootps
           - remark Autoriser DNS
